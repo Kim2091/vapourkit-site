@@ -221,7 +221,7 @@ const base = rawBase.endsWith('/') ? rawBase : `${rawBase}/`;
                 <img
                   src={`${base}${s.src}`}
                   alt={s.caption}
-                  class="block h-48 w-full object-cover object-top"
+                  class="block aspect-video w-full object-contain"
                   loading="lazy"
                   decoding="async"
                 />
