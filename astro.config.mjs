@@ -10,6 +10,7 @@ export default defineConfig({
     starlight({
       title: 'Vapourkit Docs',
       description: 'Documentation for Vapourkit — AI video upscaling and enhancement.',
+      favicon: '/favicon.svg',
       logo: {
         src: './src/assets/wordmark.svg',
         replacesTitle: true,

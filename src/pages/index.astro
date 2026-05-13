@@ -36,10 +36,8 @@ const features = [
 ];
 
 const screenshots = [
-  { caption: 'Main upscale view' },
-  { caption: 'Comparison viewer' },
-  { caption: 'Batch processor' },
-  { caption: 'Filter chain' },
+  { caption: 'Batch processor', src: 'pictures/Batch View.png' },
+  { caption: 'Filter panel', src: 'pictures/Filter Panel.png' },
 ];
 
 const models = [
@@ -66,7 +64,7 @@ const base = rawBase.endsWith('/') ? rawBase : `${rawBase}/`;
   >
     <div class="mx-auto flex max-w-6xl items-center justify-between px-6 py-3.5">
       <a href={base} class="flex items-center gap-2.5">
-        <span class="bg-icon-mark inline-block h-5 w-5 rounded-md"></span>
+        <img src={`${base}favicon.svg`} alt="" class="h-6 w-6" />
         <strong class="text-sm">Vapourkit</strong>
       </a>
       <nav class="hidden items-center gap-6 text-sm text-vk-text-muted md:flex">
@@ -140,11 +138,13 @@ const base = rawBase.endsWith('/') ? rawBase : `${rawBase}/`;
 
         <!-- Hero screenshot -->
         <div class="mx-auto mt-14 max-w-3xl rounded-xl border border-vk-border/8 bg-vk-surface-2 p-1.5">
-          <div
-            class="flex h-60 items-center justify-center rounded-md bg-vk-bg text-xs text-vk-text-subtle"
-          >
-            [ App screenshot — vapourkit UI ]
-          </div>
+          <img
+            src={`${base}pictures/Main Screen.png`}
+            alt="Vapourkit main upscale view"
+            class="block h-auto w-full rounded-md"
+            loading="eager"
+            decoding="async"
+          />
         </div>
       </div>
     </section>
@@ -217,9 +217,18 @@ const base = rawBase.endsWith('/') ? rawBase : `${rawBase}/`;
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {
             screenshots.map((s) => (
-              <div class="flex h-40 items-center justify-center rounded-lg border border-vk-border/8 bg-vk-surface-2 text-[11px] text-vk-text-subtle">
-                [ {s.caption} ]
-              </div>
+              <figure class="overflow-hidden rounded-lg border border-vk-border/8 bg-vk-surface-2">
+                <img
+                  src={`${base}${s.src}`}
+                  alt={s.caption}
+                  class="block h-48 w-full object-cover object-top"
+                  loading="lazy"
+                  decoding="async"
+                />
+                <figcaption class="px-3 py-2 text-[11px] text-vk-text-subtle">
+                  {s.caption}
+                </figcaption>
+              </figure>
             ))
           }
         </div>
