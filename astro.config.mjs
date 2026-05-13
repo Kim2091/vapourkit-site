@@ -30,7 +30,7 @@ export default defineConfig({
             { label: 'Introduction', slug: 'introduction' },
             { label: 'Installation', slug: 'installation' },
             { label: 'First Upscale', slug: 'first-upscale' },
-            { label: 'Concepts', slug: 'concepts' },
+            { label: 'How it works', slug: 'how-it-works' },
           ],
         },
         {

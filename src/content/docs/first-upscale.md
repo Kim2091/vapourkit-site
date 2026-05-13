@@ -11,8 +11,9 @@ A five-step quickstart.
 4. **Click *Start Processing*.** Processing starts. The *Output Preview* panel updates as frames complete.
 5. **Review the result.** Click *Compare* to launch the side-by-side viewer, or *Open Folder* to jump to the finished file.
 
-For more — custom filters, batch processing, templates — keep reading:
+## Next
 
-- [Basic Usage](/guides/basic-usage)
-- [Custom Filters](/guides/custom-filters)
-- [Batch Processing](/guides/batch-processing)
+- [Basic Usage](/guides/basic-usage) — the everyday workflow
+- [How it works](/how-it-works) — what's happening under the hood
+- [Custom Filters](/guides/custom-filters) — chain VapourSynth filters into the pipeline
+- [Batch Processing](/guides/batch-processing) — queue multiple videos

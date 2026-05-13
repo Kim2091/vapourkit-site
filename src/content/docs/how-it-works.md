@@ -1,9 +1,9 @@
 ---
-title: Concepts
-description: How Vapourkit thinks about pipelines, filters, models, and backends.
+title: How it works
+description: Vapourkit's pipeline, filters, models, and backends explained.
 ---
 
-This page covers the mental model behind Vapourkit. If you've followed [First Upscale](/first-upscale) or [Basic Usage](/guides/basic-usage) and want to understand what's actually happening under the hood, start here.
+The mental model behind Vapourkit, end-to-end. If you've already followed [First Upscale](/first-upscale) and want to understand what's happening under the hood, start here. Everything else in the docs is a closer look at one piece of this picture.
 
 ## VapourSynth
 
@@ -72,3 +72,10 @@ Both flows build and run the same kind of pipeline. The difference is when the c
 
 - **Single video** uses whatever filters, model, and settings are currently selected in the UI.
 - **Queue** snapshots the full workflow (filters, model, output settings, segment) per item at the moment you add it. Editing the UI afterwards doesn't retroactively change queued items — each one keeps the configuration it was added with. See [Batch Processing](/guides/batch-processing).
+
+## Next
+
+- [Basic Usage](/guides/basic-usage) — the everyday workflow
+- [Custom Filters](/guides/custom-filters) — write and chain your own
+- [Templates & Workflows](/guides/templates-workflows) — save and share full pipelines
+- [Filter Reference](/filters/reference) — every bundled filter

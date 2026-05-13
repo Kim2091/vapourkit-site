@@ -39,4 +39,6 @@ Setup runs once. Subsequent launches go straight to the main app. The plugins-an
 
 ## Next
 
-- [First Upscale](/first-upscale)
+- [First Upscale](/first-upscale) — process your first video in five minutes
+- [How it works](/how-it-works) — what's happening under the hood
+- [Basic Usage](/guides/basic-usage) — the everyday workflow

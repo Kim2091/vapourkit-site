@@ -23,8 +23,9 @@ description: What Vapourkit is and who it's for.
 - Anime and film communities upscaling SD or LQ sources
 - Anyone who wants AI-driven video enhancement without writing VapourSynth scripts by hand
 
-## Next steps
+## Next
 
-- [Installation](/installation) — download, install, first-launch setup
+- [Installation](/installation) — download and first-launch setup
 - [First Upscale](/first-upscale) — process your first video in five minutes
-- [Basic Usage](/guides/basic-usage) — common workflows
+- [How it works](/how-it-works) — the conceptual model behind the app
+- [Basic Usage](/guides/basic-usage) — the everyday workflow

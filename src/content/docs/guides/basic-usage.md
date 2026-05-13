@@ -20,8 +20,9 @@ While processing, the *Output Preview* panel shows the latest output frame. Once
 - *Compare* — launches the bundled side-by-side video viewer with the original and upscaled file aligned frame-for-frame.
 - *Open Folder* — opens File Explorer at the output location.
 
-## Where to go next
+## Next
 
+- [How it works](/how-it-works) — what's happening under the hood
 - [Custom Filters](/guides/custom-filters) — chain VapourSynth filters into the pipeline
 - [Templates & Workflows](/guides/templates-workflows) — save and share configurations
 - [Batch Processing](/guides/batch-processing) — process many videos in a queue
