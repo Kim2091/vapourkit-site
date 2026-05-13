@@ -54,6 +54,8 @@ const sysreqs = [
   { label: 'Storage', value: '5 GB min · 10 GB recommended' },
   { label: 'GPU', value: '6 GB VRAM + · NVIDIA 16xx (TensorRT) or DX12 (DirectML)' },
 ];
+
+const base = import.meta.env.BASE_URL;
 ---
 
 <Layout>
@@ -62,7 +64,7 @@ const sysreqs = [
     class="sticky top-0 z-40 border-b border-vk-border/8 bg-vk-bg/75 backdrop-blur-md"
   >
     <div class="mx-auto flex max-w-6xl items-center justify-between px-6 py-3.5">
-      <a href="/" class="flex items-center gap-2.5">
+      <a href={base} class="flex items-center gap-2.5">
         <span class="bg-icon-mark inline-block h-5 w-5 rounded-md"></span>
         <strong class="text-sm">Vapourkit</strong>
       </a>
@@ -70,7 +72,7 @@ const sysreqs = [
         <a href="#features" class="hover:text-vk-text transition-colors">Features</a>
         <a href="#tour" class="hover:text-vk-text transition-colors">Screenshots</a>
         <a href="#models" class="hover:text-vk-text transition-colors">Models</a>
-        <a href="/introduction" class="hover:text-vk-text transition-colors">Docs</a>
+        <a href={`${base}introduction`} class="hover:text-vk-text transition-colors">Docs</a>
         <a href="#community" class="hover:text-vk-text transition-colors">Discord</a>
         <button
           id="vk-theme-toggle"
