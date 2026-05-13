@@ -5,61 +5,44 @@ description: Complete reference of bundled VapourSynth filters in Vapourkit.
 
 > Auto-generated from `.vkfilter` files in the Vapourkit repo. Do not hand-edit — re-run `npm run gen:filters`.
 
-**162 filters** across 51 categories.
+**162 filters** across 34 categories.
 
 ## Categories
 
 - [Anti-Aliasing](#anti-aliasing)
 - [Blurring](#blurring)
+- [Chroma](#chroma)
 - [Cleaning](#cleaning)
 - [Color Modification](#color-modification)
 - [Comparison](#comparison)
+- [Compositing](#compositing)
 - [Debanding](#debanding)
+- [Deblocking](#deblocking)
 - [Dehalo](#dehalo)
 - [Deinterlacing](#deinterlacing)
-- [Deinterlacing,Telecine](#deinterlacing-telecine)
 - [Denoising](#denoising)
-- [Denoising,Deblocking](#denoising-deblocking)
+- [Effects](#effects)
 - [Frame Interpolation](#frame-interpolation)
 - [Frame Manipulation](#frame-manipulation)
 - [Frame Rate](#frame-rate)
+- [Frame Recovery](#frame-recovery)
 - [Grain](#grain)
-- [Hybrid,Anti-Aliasing](#hybrid-anti-aliasing)
-- [Hybrid,Chroma](#hybrid-chroma)
-- [Hybrid,Cleaning](#hybrid-cleaning)
-- [Hybrid,Color Modification](#hybrid-color-modification)
-- [Hybrid,Compositing](#hybrid-compositing)
-- [Hybrid,Debanding](#hybrid-debanding)
-- [Hybrid,Deblocking](#hybrid-deblocking)
-- [Hybrid,Dehalo](#hybrid-dehalo)
-- [Hybrid,Deinterlacing](#hybrid-deinterlacing)
-- [Hybrid,Denoising](#hybrid-denoising)
-- [Hybrid,Effects](#hybrid-effects)
-- [Hybrid,Frame Manipulation](#hybrid-frame-manipulation)
-- [Hybrid,Frame Rate](#hybrid-frame-rate)
-- [Hybrid,Frame Recovery](#hybrid-frame-recovery)
-- [Hybrid,Grain](#hybrid-grain)
-- [Hybrid,Lines](#hybrid-lines)
-- [Hybrid,Masking](#hybrid-masking)
-- [Hybrid,Padding/Cropping](#hybrid-padding-cropping)
-- [Hybrid,Resizing](#hybrid-resizing)
-- [Hybrid,Sharpening](#hybrid-sharpening)
-- [Hybrid,Stabilization](#hybrid-stabilization)
-- [Hybrid,Unresize](#hybrid-unresize)
+- [Hybrid](#hybrid)
 - [Limiting](#limiting)
+- [Lines](#lines)
 - [Masking](#masking)
 - [Overlays](#overlays)
 - [Padding/Cropping](#padding-cropping)
 - [Resizing](#resizing)
 - [Restoration](#restoration)
-- [Restoration,Stabilization](#restoration-stabilization)
 - [Sharpening](#sharpening)
+- [Stabilization](#stabilization)
+- [Telecine](#telecine)
 - [Temporal Smoothing](#temporal-smoothing)
-- [Temporal Smoothing,Restoration](#temporal-smoothing-restoration)
 - [Tiling](#tiling)
 - [Transform](#transform)
+- [Unresize](#unresize)
 - [Utility](#utility)
-- [Utility,Comparison](#utility-comparison)
 
 ## Anti-Aliasing
 
@@ -121,6 +104,25 @@ rfactor = 2.0  # Resize factor for supersampling (higher = better quality but sl
 mask_thr = 60  # Edge detection threshold (higher = less AA applied)
 
 clip = based_aa(clip, rfactor=rfactor, mask_thr=mask_thr)
+```
+
+</details>
+
+### DAA Anti-Aliasing 
+
+Anti-aliasing with contra-sharpening by Didée, averages two independent interpolations
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Didée's anti-aliasing with contra-sharpening
+# From hybrid_filters/antiAliasing.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from antiAliasing import daa
+
+clip = daa(clip)
 ```
 
 </details>
@@ -226,6 +228,47 @@ clip = median_blur(clip, radius=radius)
 </details>
 
 
+## Chroma
+
+### Fix Chroma Bleeding 
+
+Fixes chroma bleeding artifacts with adjustable strength and blur options
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Fix chroma bleeding artifacts
+# From hybrid_filters/chromaBleeding.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from chromaBleeding import FixChromaBleedingMod
+
+clip = FixChromaBleedingMod(clip, cx=4, cy=4, thr=4.0, strength=0.8, blur=False)
+```
+
+</details>
+
+### Rainbow Smooth 
+
+Removes rainbow artifacts using edge-aware chroma smoothing
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Remove rainbow artifacts with edge-aware smoothing
+# From hybrid_filters/RainbowSmooth.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from RainbowSmooth import RainbowSmooth
+
+clip = RainbowSmooth(clip, radius=3, lthresh=0, hthresh=220, mask="original")
+```
+
+</details>
+
+
 ## Cleaning
 
 ### Deblock 
@@ -246,6 +289,139 @@ alpha = 1  # Alpha parameter for deblocking
 beta = 2  # Beta parameter for deblocking
 
 clip = deblock_qed(clip, quant=(quant, quant), alpha=(alpha, alpha), beta=(beta, beta))
+```
+
+</details>
+
+### DeSpot 
+
+Removes temporal spots and artifacts using motion-compensated cleaning
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Remove temporal spots and artifacts using motion compensation
+# From hybrid_filters/artifacts.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from artifacts import DeSpot
+
+clip = DeSpot(clip)
+```
+
+</details>
+
+### Killer Spots 
+
+Removes spots from primitive videos using motion compensation
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Aggressive spot removal for primitive videos
+# From hybrid_filters/killerspots.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from killerspots import KillerSpots
+
+clip = KillerSpots(clip, limit=10, advanced=False)
+```
+
+</details>
+
+### LUTDeCrawl 
+
+Removes dot crawl artifacts from video
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Remove dot crawl artifacts
+# From hybrid_filters/decrawl.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from decrawl import LUTDeCrawl
+
+clip = LUTDeCrawl(clip, ythresh=10, cthresh=10, maxdiff=50, scnchg=25, usemaxdiff=True)
+```
+
+</details>
+
+### LUTDeRainbow 
+
+Removes rainbow artifacts from video
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Remove rainbow artifacts
+# From hybrid_filters/derainbow.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from derainbow import LUTDeRainbow
+
+clip = LUTDeRainbow(clip, cthresh=10, ythresh=10, y=True, linkUV=True)
+```
+
+</details>
+
+### Remove Dirt 
+
+Removes dirt and specks from video using temporal cleaning
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Remove dirt and specks from video
+# From hybrid_filters/removeDirt.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from removeDirt import RemoveDirt
+
+clip = RemoveDirt(clip, repmode=16, remgrainmode=17, limit=10)
+```
+
+</details>
+
+### Remove Dirt MC 
+
+Removes dirt using motion-compensated temporal cleaning
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Motion-compensated dirt removal
+# From hybrid_filters/removeDirt.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from removeDirt import RemoveDirtMC
+
+clip = RemoveDirtMC(clip, limit=6, repmode=16, remgrainmode=17, block_size=8, block_over=4, gpu=False)
+```
+
+</details>
+
+### Vinverse 
+
+Small but effective function against residual combing by Didée
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Remove residual combing artifacts
+# From hybrid_filters/residual.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from residual import Vinverse
+
+clip = Vinverse(clip, sstr=2.7, amnt=255, chroma=True, scl=0.25)
 ```
 
 </details>
@@ -372,6 +548,25 @@ clip = core.std.ShufflePlanes([clip, shifted_chroma, shifted_chroma], [0, 1, 2],
 
 </details>
 
+### Tweak 
+
+Adjusts hue, saturation, brightness and contrast with coring support
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Adjust hue, saturation, brightness and contrast
+# From hybrid_filters/color.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from color import Tweak
+
+clip = Tweak(clip, hue=None, sat=None, bright=None, cont=None, coring=True)
+```
+
+</details>
+
 ### Wavelet Color Fix 
 
 Correct for color shift by matching the average color of the clip to that of the original input clip. Better results than Average Color Fix, but much slower.
@@ -418,6 +613,22 @@ clip = core.std.Interleave([clip_a, clip_b])
 
 </details>
 
+### Side by Side 
+
+Stacks the current clip next to the original clip.
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Full Docs: https://www.vapoursynth.com/doc/functions/video/stackvertical_stackhorizontal.html
+
+original_clip_resized = core.resize.Bilinear(original_clip, format=clip.format, width=clip.width, height=clip.height)
+clip = core.std.StackHorizontal([original_clip_resized, clip])
+```
+
+</details>
+
 ### Stack Horizontal 
 
 Stacks two clips side-by-side horizontally for comparison
@@ -457,6 +668,29 @@ clip = core.std.StackVertical([clip_top, clip_bottom])
 </details>
 
 
+## Compositing
+
+### Overlay 
+
+Overlays clips with various blend modes and positioning options
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Overlay clips with different blend modes
+# From hybrid_filters/misc.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from misc import Overlay
+
+# overlay_clip = ...
+# clip = Overlay(clip, overlay_clip, x=0, y=0, opacity=1.0, mode='normal')
+```
+
+</details>
+
+
 ## Debanding
 
 ### Deband 
@@ -472,6 +706,73 @@ Removes banding from the clip with the placebo debander.
 
 import vsdeband
 clip = vsdeband.placebo_deband(clip, radius=8, thr=[3, 3, 3], grain=0.0, iterations=4)
+```
+
+</details>
+
+### GradFun3 
+
+Advanced debanding combined with resizers for better detail preservation
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Advanced debanding with resizing support (GradFun3mod)
+# From hybrid_filters/deband.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from deband import GradFun3
+
+clip = GradFun3(clip, thr=0.35, radius=16, elast=3.0, mask=2, mode=2, ampo=1, ampn=0, pat=32, dyn=False, staticnoise=False, smode=2, thr_det=2 + round(max(thr - 0.35, 0) / 0.3), debug=False, plane=0, bits=None, dyn_resize=False)
+```
+
+</details>
+
+
+## Deblocking
+
+### Deblock QED 
+
+Postprocessed deblocking using full frequencies on edges, DCT-lowpassed on interiors
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Advanced deblocking with DCT-lowpass filtering
+# From hybrid_filters/deblock.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from deblock import Deblock_QED
+
+clip = Deblock_QED(clip, quant1=24, quant2=26, aOff1=1, bOff1=2, aOff2=1, bOff2=2, uv=3)
+```
+
+</details>
+
+### DPIR Denoise/Deblock 
+
+Deep Plug-and-Play Image Restoration is an AI spatial denoiser and deblocker.
+
+<details>
+<summary>Show code</summary>
+
+```python
+from vsmlrt import DPIR, DPIRModel, Backend
+# Full Docs: https://github.com/AmusementClub/vs-mlrt/wiki/DPIR
+# Models: DPIRModel.drunet_color, DPIRModel.drunet_deblocking_color
+
+model       = DPIRModel.drunet_color
+strength    = 5
+nvidia_gpu  = True
+fp16        = True
+num_streams = 1
+
+backend = (Backend.TRT if nvidia_gpu else Backend.ORT_DML)(fp16=fp16, num_streams=num_streams)
+clip = core.resize.Bilinear(clip, format=vs.RGBH if fp16 else vs.RGBS, matrix_in_s="709")
+clip = DPIR(clip, strength=strength, model=model, backend=backend)
+clip = core.resize.Point(clip, format=vs.YUV444P16, matrix_s="709")
 ```
 
 </details>
@@ -503,8 +804,65 @@ clip = dehalo_alpha(clip, lowsens=lowsens, highsens=highsens, ss=ss, darkstr=dar
 
 </details>
 
+### DeHalo Alpha (Old) 
+
+Reduces halo artifacts with separate controls for dark and bright halos
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Reduce halo artifacts from sharpening
+# From hybrid_filters/dehalo.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from dehalo import DeHalo_alpha
+
+clip = DeHalo_alpha(clip, rx=2.0, ry=2.0, darkstr=1.0, brightstr=1.0, lowsens=50.0, highsens=50.0, ss=1.5)
+```
+
+</details>
+
+### HQDering 
+
+Applies deringing using a smart smoother near edges where ringing occurs
+
+<details>
+<summary>Show code</summary>
+
+```python
+# High-quality deringing using smart edge smoothing
+# From hybrid_filters/dering.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from dering import HQDeringmod
+
+clip = HQDeringmod(clip, mrad=1, msmooth=1, incedge=False, mthr=60, thr=12.0, elast=2.0, show=False)
+```
+
+</details>
+
 
 ## Deinterlacing
+
+### CQTGMC 
+
+Fast deinterlacing combining spatial and temporal methods
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Fast deinterlacing with QTGMC-like quality
+# From hybrid_filters/cqtgmc.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from cqtgmc import CQTGMC
+
+clip = CQTGMC(clip, Sharpness=0.25, thSAD1=192, thSAD2=320, tff=True, openCL=False)
+```
+
+</details>
 
 ### Deep Deinterlace 
 
@@ -702,8 +1060,62 @@ original_clip = clip
 
 </details>
 
+### QTGMC (Old) 
 
-## Deinterlacing,Telecine
+High-quality motion-compensated deinterlacing (QTGMC)
+
+<details>
+<summary>Show code</summary>
+
+```python
+# High-quality deinterlacing with motion compensation
+# From hybrid_filters/qtgmc.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from qtgmc import QTGMC
+
+clip = QTGMC(clip, Preset='Slower', FPSDivisor=1, TFF=None)
+```
+
+</details>
+
+### TFMBobN 
+
+Deinterlaces using TFM with NNEDI3 bobbing for field reconstruction
+
+<details>
+<summary>Show code</summary>
+
+```python
+# TFM + NNEDI3 bobbing deinterlace
+# From hybrid_filters/TFMBob.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from TFMBob import TFMBobN
+
+clip = TFMBobN(clip, pp=6, cthresh=9, MI=80, chroma=False, openCL=False)
+```
+
+</details>
+
+### TFMBobQ 
+
+Deinterlaces using TFM with QTGMC bobbing for field reconstruction
+
+<details>
+<summary>Show code</summary>
+
+```python
+# TFM + QTGMC bobbing deinterlace
+# From hybrid_filters/TFMBob.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from TFMBob import TFMBobQ
+
+clip = TFMBobQ(clip, pp=6, cthresh=9, MI=80, chroma=False, openCL=False)
+```
+
+</details>
 
 ### VIVTC 
 
@@ -739,6 +1151,51 @@ if original_clip.format.id != clip.format.id:
 
 ## Denoising
 
+### DFTTest2 
+
+Frequency domain denoising using DFT (Discrete Fourier Transform)
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Frequency domain denoising
+# From hybrid_filters/dfttest2.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from dfttest2 import DFTTest
+
+clip = DFTTest(clip, sigma=8.0)
+```
+
+</details>
+
+### DPIR Denoise/Deblock 
+
+Deep Plug-and-Play Image Restoration is an AI spatial denoiser and deblocker.
+
+<details>
+<summary>Show code</summary>
+
+```python
+from vsmlrt import DPIR, DPIRModel, Backend
+# Full Docs: https://github.com/AmusementClub/vs-mlrt/wiki/DPIR
+# Models: DPIRModel.drunet_color, DPIRModel.drunet_deblocking_color
+
+model       = DPIRModel.drunet_color
+strength    = 5
+nvidia_gpu  = True
+fp16        = True
+num_streams = 1
+
+backend = (Backend.TRT if nvidia_gpu else Backend.ORT_DML)(fp16=fp16, num_streams=num_streams)
+clip = core.resize.Bilinear(clip, format=vs.RGBH if fp16 else vs.RGBS, matrix_in_s="709")
+clip = DPIR(clip, strength=strength, model=model, backend=backend)
+clip = core.resize.Point(clip, format=vs.YUV444P16, matrix_s="709")
+```
+
+</details>
+
 ### FFT3D 
 
 3D frequency-domain denoising using FFT (temporal + spatial)
@@ -758,6 +1215,25 @@ bw = 32  # Block width
 bh = 32  # Block height
 
 clip = core.fft3dfilter.FFT3DFilter(clip, sigma=sigma, bt=bt, bw=bw, bh=bh)
+```
+
+</details>
+
+### KNLMeans Denoise 
+
+Non-local means denoising with GPU acceleration support
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Non-local means denoising
+# From hybrid_filters/denoise.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from denoise import KNLMeansCL
+
+clip = KNLMeansCL(clip, d=None, a=None, s=None, h=None)
 ```
 
 </details>
@@ -857,31 +1333,147 @@ clip = nl_means(clip, h=1.2, tr=1, a=2, s=4, backend=nl_means.Backend.CUDA)
 
 </details>
 
+### Oyster 
 
-## Denoising,Deblocking
-
-### DPIR Denoise/Deblock 
-
-Deep Plug-and-Play Image Restoration is an AI spatial denoiser and deblocker.
+High-quality denoising using BM3D with motion compensation
 
 <details>
 <summary>Show code</summary>
 
 ```python
-from vsmlrt import DPIR, DPIRModel, Backend
-# Full Docs: https://github.com/AmusementClub/vs-mlrt/wiki/DPIR
-# Models: DPIRModel.drunet_color, DPIRModel.drunet_deblocking_color
+# High-quality denoising using BM3D
+# From hybrid_filters/Oyster.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from Oyster import Super_OYSTER
 
-model       = DPIRModel.drunet_color
-strength    = 5
-nvidia_gpu  = True
-fp16        = True
-num_streams = 1
+clip = Super_OYSTER(clip, sfMode=3, prefilter=False)
+```
 
-backend = (Backend.TRT if nvidia_gpu else Backend.ORT_DML)(fp16=fp16, num_streams=num_streams)
-clip = core.resize.Bilinear(clip, format=vs.RGBH if fp16 else vs.RGBS, matrix_in_s="709")
-clip = DPIR(clip, strength=strength, model=model, backend=backend)
-clip = core.resize.Point(clip, format=vs.YUV444P16, matrix_s="709")
+</details>
+
+### SMDegrain 
+
+Pure temporal denoiser using MVTools with motion compensation
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Simple MDegrain - Motion-compensated temporal denoising
+# From hybrid_filters/smdegrain.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from smdegrain import SMDegrain
+
+clip = SMDegrain(clip, tr=2, thSAD=300, RefineMotion=False, contrasharp=None, plane=4)
+```
+
+</details>
+
+### SpotLess 
+
+Strong temporal denoising optimized for removing spots and noise
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Strong temporal denoising using MVTools
+# From hybrid_filters/SpotLess.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from SpotLess import SpotLess
+
+clip = SpotLess(clip, radT=1, thsad=10000, chroma=True, truemotion=True)
+```
+
+</details>
+
+### STPresso 
+
+Dampens grain slightly while maintaining original look using spatial and temporal filtering
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Spatiotemporal grain dampening
+# From hybrid_filters/degrain.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from degrain import STPresso
+
+clip = STPresso(clip, limit=3, bias=24, RGmode=4, tthr=12, tlimit=3, tbias=49, back=1)
+```
+
+</details>
+
+
+## Effects
+
+### Animate 
+
+Framework for animated effects and crossfade transitions between filters
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Apply animated effects and transitions
+# From hybrid_filters/animate.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+import animate
+
+# Define your animation functions
+# def effect1(clip): return clip.std.Convolution([1,2,1,2,4,2,1,2,1])
+# def effect2(clip): return clip.std.Sobel()
+
+# MAP = [
+#     (0, 100), [effect1],
+#     (101, 150), [animate.Crossfade(effect1, effect2)],
+#     (151, 200), [effect2]
+# ]
+# clip = animate.run(clip, MAP)
+```
+
+</details>
+
+### Fade In 
+
+Fades in from black over specified number of frames
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Fade from black at the start of clip
+# From hybrid_filters/fade.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from fade import fadein
+
+clip = fadein(clip, fadeframes=30)
+```
+
+</details>
+
+### Fade Out 
+
+Fades clip to black over specified number of frames
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Fade to black at the end of clip
+# From hybrid_filters/fade.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from fade import fadeout
+
+clip = fadeout(clip, fadeframes=30)
 ```
 
 </details>
@@ -933,6 +1525,25 @@ clip = vs_tiletools.crop(clip)
 
 
 ## Frame Manipulation
+
+### Add Duplicates 
+
+Detects frames with low temporal difference and duplicates the previous frame if below threshold
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Add duplicate frames when temporal difference is below threshold
+# From hybrid_filters/AddDuplicates.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from AddDuplicates import addDup
+
+clip = addDup(clip, thresh=0.3, debug=False)
+```
+
+</details>
 
 ### Delete Frames 
 
@@ -1038,681 +1649,6 @@ clip = core.std.AssumeFPS(clip, fpsnum=fpsnum, fpsden=fpsden)
 
 </details>
 
-### Select Every 
-
-Selects every Nth frame from the clip to reduce frame rate
-
-<details>
-<summary>Show code</summary>
-
-```python
-# Select every Nth frame
-# Full Docs: https://www.vapoursynth.com/doc/functions/video/selectevery.html
-
-cycle = 5  # Take 1 frame every N frames
-offsets = 0  # Which frame in the cycle to take
-
-clip = core.std.SelectEvery(clip, cycle=cycle, offsets=[offsets])
-```
-
-</details>
-
-
-## Grain
-
-### FGrain 
-
-Very high quality and realistic grain generator that animates the grain, adds opacity options, and support for YUV. Grain is only applied to luma. Requires an Nvidia GPU.
-
-<details>
-<summary>Show code</summary>
-
-```python
-# Full Docs: https://github.com/pifroggi/vs_grain
-
-import vs_grain
-clip = vs_grain.fgrain(clip, iterations=800, size=0.5, deviation=0.0, blur=0.9, opacity=0.1)
-```
-
-</details>
-
-### Grain Stabilize 
-
-Stabilizes film grain to reduce temporal flickering
-
-<details>
-<summary>Show code</summary>
-
-```python
-# Stabilize grain (make it less flickery)
-
-from vstools import vs, core
-
-# Temporal smoothing of grain
-clip = core.rgvs.RemoveGrain(clip, mode=19)
-```
-
-</details>
-
-
-## Hybrid,Anti-Aliasing
-
-### DAA Anti-Aliasing 
-
-Anti-aliasing with contra-sharpening by Didée, averages two independent interpolations
-
-<details>
-<summary>Show code</summary>
-
-```python
-# Didée's anti-aliasing with contra-sharpening
-# From hybrid_filters/antiAliasing.py
-import sys
-sys.path.insert(0, r'hybrid_filters')
-from antiAliasing import daa
-
-clip = daa(clip)
-```
-
-</details>
-
-
-## Hybrid,Chroma
-
-### Fix Chroma Bleeding 
-
-Fixes chroma bleeding artifacts with adjustable strength and blur options
-
-<details>
-<summary>Show code</summary>
-
-```python
-# Fix chroma bleeding artifacts
-# From hybrid_filters/chromaBleeding.py
-import sys
-sys.path.insert(0, r'hybrid_filters')
-from chromaBleeding import FixChromaBleedingMod
-
-clip = FixChromaBleedingMod(clip, cx=4, cy=4, thr=4.0, strength=0.8, blur=False)
-```
-
-</details>
-
-### Rainbow Smooth 
-
-Removes rainbow artifacts using edge-aware chroma smoothing
-
-<details>
-<summary>Show code</summary>
-
-```python
-# Remove rainbow artifacts with edge-aware smoothing
-# From hybrid_filters/RainbowSmooth.py
-import sys
-sys.path.insert(0, r'hybrid_filters')
-from RainbowSmooth import RainbowSmooth
-
-clip = RainbowSmooth(clip, radius=3, lthresh=0, hthresh=220, mask="original")
-```
-
-</details>
-
-
-## Hybrid,Cleaning
-
-### DeSpot 
-
-Removes temporal spots and artifacts using motion-compensated cleaning
-
-<details>
-<summary>Show code</summary>
-
-```python
-# Remove temporal spots and artifacts using motion compensation
-# From hybrid_filters/artifacts.py
-import sys
-sys.path.insert(0, r'hybrid_filters')
-from artifacts import DeSpot
-
-clip = DeSpot(clip)
-```
-
-</details>
-
-### Killer Spots 
-
-Removes spots from primitive videos using motion compensation
-
-<details>
-<summary>Show code</summary>
-
-```python
-# Aggressive spot removal for primitive videos
-# From hybrid_filters/killerspots.py
-import sys
-sys.path.insert(0, r'hybrid_filters')
-from killerspots import KillerSpots
-
-clip = KillerSpots(clip, limit=10, advanced=False)
-```
-
-</details>
-
-### LUTDeCrawl 
-
-Removes dot crawl artifacts from video
-
-<details>
-<summary>Show code</summary>
-
-```python
-# Remove dot crawl artifacts
-# From hybrid_filters/decrawl.py
-import sys
-sys.path.insert(0, r'hybrid_filters')
-from decrawl import LUTDeCrawl
-
-clip = LUTDeCrawl(clip, ythresh=10, cthresh=10, maxdiff=50, scnchg=25, usemaxdiff=True)
-```
-
-</details>
-
-### LUTDeRainbow 
-
-Removes rainbow artifacts from video
-
-<details>
-<summary>Show code</summary>
-
-```python
-# Remove rainbow artifacts
-# From hybrid_filters/derainbow.py
-import sys
-sys.path.insert(0, r'hybrid_filters')
-from derainbow import LUTDeRainbow
-
-clip = LUTDeRainbow(clip, cthresh=10, ythresh=10, y=True, linkUV=True)
-```
-
-</details>
-
-### Remove Dirt 
-
-Removes dirt and specks from video using temporal cleaning
-
-<details>
-<summary>Show code</summary>
-
-```python
-# Remove dirt and specks from video
-# From hybrid_filters/removeDirt.py
-import sys
-sys.path.insert(0, r'hybrid_filters')
-from removeDirt import RemoveDirt
-
-clip = RemoveDirt(clip, repmode=16, remgrainmode=17, limit=10)
-```
-
-</details>
-
-### Remove Dirt MC 
-
-Removes dirt using motion-compensated temporal cleaning
-
-<details>
-<summary>Show code</summary>
-
-```python
-# Motion-compensated dirt removal
-# From hybrid_filters/removeDirt.py
-import sys
-sys.path.insert(0, r'hybrid_filters')
-from removeDirt import RemoveDirtMC
-
-clip = RemoveDirtMC(clip, limit=6, repmode=16, remgrainmode=17, block_size=8, block_over=4, gpu=False)
-```
-
-</details>
-
-### Vinverse 
-
-Small but effective function against residual combing by Didée
-
-<details>
-<summary>Show code</summary>
-
-```python
-# Remove residual combing artifacts
-# From hybrid_filters/residual.py
-import sys
-sys.path.insert(0, r'hybrid_filters')
-from residual import Vinverse
-
-clip = Vinverse(clip, sstr=2.7, amnt=255, chroma=True, scl=0.25)
-```
-
-</details>
-
-
-## Hybrid,Color Modification
-
-### Tweak 
-
-Adjusts hue, saturation, brightness and contrast with coring support
-
-<details>
-<summary>Show code</summary>
-
-```python
-# Adjust hue, saturation, brightness and contrast
-# From hybrid_filters/color.py
-import sys
-sys.path.insert(0, r'hybrid_filters')
-from color import Tweak
-
-clip = Tweak(clip, hue=None, sat=None, bright=None, cont=None, coring=True)
-```
-
-</details>
-
-
-## Hybrid,Compositing
-
-### Overlay 
-
-Overlays clips with various blend modes and positioning options
-
-<details>
-<summary>Show code</summary>
-
-```python
-# Overlay clips with different blend modes
-# From hybrid_filters/misc.py
-import sys
-sys.path.insert(0, r'hybrid_filters')
-from misc import Overlay
-
-# overlay_clip = ...
-# clip = Overlay(clip, overlay_clip, x=0, y=0, opacity=1.0, mode='normal')
-```
-
-</details>
-
-
-## Hybrid,Debanding
-
-### GradFun3 
-
-Advanced debanding combined with resizers for better detail preservation
-
-<details>
-<summary>Show code</summary>
-
-```python
-# Advanced debanding with resizing support (GradFun3mod)
-# From hybrid_filters/deband.py
-import sys
-sys.path.insert(0, r'hybrid_filters')
-from deband import GradFun3
-
-clip = GradFun3(clip, thr=0.35, radius=16, elast=3.0, mask=2, mode=2, ampo=1, ampn=0, pat=32, dyn=False, staticnoise=False, smode=2, thr_det=2 + round(max(thr - 0.35, 0) / 0.3), debug=False, plane=0, bits=None, dyn_resize=False)
-```
-
-</details>
-
-
-## Hybrid,Deblocking
-
-### Deblock QED 
-
-Postprocessed deblocking using full frequencies on edges, DCT-lowpassed on interiors
-
-<details>
-<summary>Show code</summary>
-
-```python
-# Advanced deblocking with DCT-lowpass filtering
-# From hybrid_filters/deblock.py
-import sys
-sys.path.insert(0, r'hybrid_filters')
-from deblock import Deblock_QED
-
-clip = Deblock_QED(clip, quant1=24, quant2=26, aOff1=1, bOff1=2, aOff2=1, bOff2=2, uv=3)
-```
-
-</details>
-
-
-## Hybrid,Dehalo
-
-### DeHalo Alpha (Old) 
-
-Reduces halo artifacts with separate controls for dark and bright halos
-
-<details>
-<summary>Show code</summary>
-
-```python
-# Reduce halo artifacts from sharpening
-# From hybrid_filters/dehalo.py
-import sys
-sys.path.insert(0, r'hybrid_filters')
-from dehalo import DeHalo_alpha
-
-clip = DeHalo_alpha(clip, rx=2.0, ry=2.0, darkstr=1.0, brightstr=1.0, lowsens=50.0, highsens=50.0, ss=1.5)
-```
-
-</details>
-
-### HQDering 
-
-Applies deringing using a smart smoother near edges where ringing occurs
-
-<details>
-<summary>Show code</summary>
-
-```python
-# High-quality deringing using smart edge smoothing
-# From hybrid_filters/dering.py
-import sys
-sys.path.insert(0, r'hybrid_filters')
-from dering import HQDeringmod
-
-clip = HQDeringmod(clip, mrad=1, msmooth=1, incedge=False, mthr=60, thr=12.0, elast=2.0, show=False)
-```
-
-</details>
-
-
-## Hybrid,Deinterlacing
-
-### CQTGMC 
-
-Fast deinterlacing combining spatial and temporal methods
-
-<details>
-<summary>Show code</summary>
-
-```python
-# Fast deinterlacing with QTGMC-like quality
-# From hybrid_filters/cqtgmc.py
-import sys
-sys.path.insert(0, r'hybrid_filters')
-from cqtgmc import CQTGMC
-
-clip = CQTGMC(clip, Sharpness=0.25, thSAD1=192, thSAD2=320, tff=True, openCL=False)
-```
-
-</details>
-
-### QTGMC (Old) 
-
-High-quality motion-compensated deinterlacing (QTGMC)
-
-<details>
-<summary>Show code</summary>
-
-```python
-# High-quality deinterlacing with motion compensation
-# From hybrid_filters/qtgmc.py
-import sys
-sys.path.insert(0, r'hybrid_filters')
-from qtgmc import QTGMC
-
-clip = QTGMC(clip, Preset='Slower', FPSDivisor=1, TFF=None)
-```
-
-</details>
-
-### TFMBobN 
-
-Deinterlaces using TFM with NNEDI3 bobbing for field reconstruction
-
-<details>
-<summary>Show code</summary>
-
-```python
-# TFM + NNEDI3 bobbing deinterlace
-# From hybrid_filters/TFMBob.py
-import sys
-sys.path.insert(0, r'hybrid_filters')
-from TFMBob import TFMBobN
-
-clip = TFMBobN(clip, pp=6, cthresh=9, MI=80, chroma=False, openCL=False)
-```
-
-</details>
-
-### TFMBobQ 
-
-Deinterlaces using TFM with QTGMC bobbing for field reconstruction
-
-<details>
-<summary>Show code</summary>
-
-```python
-# TFM + QTGMC bobbing deinterlace
-# From hybrid_filters/TFMBob.py
-import sys
-sys.path.insert(0, r'hybrid_filters')
-from TFMBob import TFMBobQ
-
-clip = TFMBobQ(clip, pp=6, cthresh=9, MI=80, chroma=False, openCL=False)
-```
-
-</details>
-
-
-## Hybrid,Denoising
-
-### DFTTest2 
-
-Frequency domain denoising using DFT (Discrete Fourier Transform)
-
-<details>
-<summary>Show code</summary>
-
-```python
-# Frequency domain denoising
-# From hybrid_filters/dfttest2.py
-import sys
-sys.path.insert(0, r'hybrid_filters')
-from dfttest2 import DFTTest
-
-clip = DFTTest(clip, sigma=8.0)
-```
-
-</details>
-
-### KNLMeans Denoise 
-
-Non-local means denoising with GPU acceleration support
-
-<details>
-<summary>Show code</summary>
-
-```python
-# Non-local means denoising
-# From hybrid_filters/denoise.py
-import sys
-sys.path.insert(0, r'hybrid_filters')
-from denoise import KNLMeansCL
-
-clip = KNLMeansCL(clip, d=None, a=None, s=None, h=None)
-```
-
-</details>
-
-### Oyster 
-
-High-quality denoising using BM3D with motion compensation
-
-<details>
-<summary>Show code</summary>
-
-```python
-# High-quality denoising using BM3D
-# From hybrid_filters/Oyster.py
-import sys
-sys.path.insert(0, r'hybrid_filters')
-from Oyster import Super_OYSTER
-
-clip = Super_OYSTER(clip, sfMode=3, prefilter=False)
-```
-
-</details>
-
-### SMDegrain 
-
-Pure temporal denoiser using MVTools with motion compensation
-
-<details>
-<summary>Show code</summary>
-
-```python
-# Simple MDegrain - Motion-compensated temporal denoising
-# From hybrid_filters/smdegrain.py
-import sys
-sys.path.insert(0, r'hybrid_filters')
-from smdegrain import SMDegrain
-
-clip = SMDegrain(clip, tr=2, thSAD=300, RefineMotion=False, contrasharp=None, plane=4)
-```
-
-</details>
-
-### SpotLess 
-
-Strong temporal denoising optimized for removing spots and noise
-
-<details>
-<summary>Show code</summary>
-
-```python
-# Strong temporal denoising using MVTools
-# From hybrid_filters/SpotLess.py
-import sys
-sys.path.insert(0, r'hybrid_filters')
-from SpotLess import SpotLess
-
-clip = SpotLess(clip, radT=1, thsad=10000, chroma=True, truemotion=True)
-```
-
-</details>
-
-### STPresso 
-
-Dampens grain slightly while maintaining original look using spatial and temporal filtering
-
-<details>
-<summary>Show code</summary>
-
-```python
-# Spatiotemporal grain dampening
-# From hybrid_filters/degrain.py
-import sys
-sys.path.insert(0, r'hybrid_filters')
-from degrain import STPresso
-
-clip = STPresso(clip, limit=3, bias=24, RGmode=4, tthr=12, tlimit=3, tbias=49, back=1)
-```
-
-</details>
-
-
-## Hybrid,Effects
-
-### Animate 
-
-Framework for animated effects and crossfade transitions between filters
-
-<details>
-<summary>Show code</summary>
-
-```python
-# Apply animated effects and transitions
-# From hybrid_filters/animate.py
-import sys
-sys.path.insert(0, r'hybrid_filters')
-import animate
-
-# Define your animation functions
-# def effect1(clip): return clip.std.Convolution([1,2,1,2,4,2,1,2,1])
-# def effect2(clip): return clip.std.Sobel()
-
-# MAP = [
-#     (0, 100), [effect1],
-#     (101, 150), [animate.Crossfade(effect1, effect2)],
-#     (151, 200), [effect2]
-# ]
-# clip = animate.run(clip, MAP)
-```
-
-</details>
-
-### Fade In 
-
-Fades in from black over specified number of frames
-
-<details>
-<summary>Show code</summary>
-
-```python
-# Fade from black at the start of clip
-# From hybrid_filters/fade.py
-import sys
-sys.path.insert(0, r'hybrid_filters')
-from fade import fadein
-
-clip = fadein(clip, fadeframes=30)
-```
-
-</details>
-
-### Fade Out 
-
-Fades clip to black over specified number of frames
-
-<details>
-<summary>Show code</summary>
-
-```python
-# Fade to black at the end of clip
-# From hybrid_filters/fade.py
-import sys
-sys.path.insert(0, r'hybrid_filters')
-from fade import fadeout
-
-clip = fadeout(clip, fadeframes=30)
-```
-
-</details>
-
-
-## Hybrid,Frame Manipulation
-
-### Add Duplicates 
-
-Detects frames with low temporal difference and duplicates the previous frame if below threshold
-
-<details>
-<summary>Show code</summary>
-
-```python
-# Add duplicate frames when temporal difference is below threshold
-# From hybrid_filters/AddDuplicates.py
-import sys
-sys.path.insert(0, r'hybrid_filters')
-from AddDuplicates import addDup
-
-clip = addDup(clip, thresh=0.3, debug=False)
-```
-
-</details>
-
-
-## Hybrid,Frame Rate
-
 ### Change FPS 
 
 Convert framerate efficiently using precomputed lookup table for long clips
@@ -1751,6 +1687,25 @@ clip = FrameRateConverter(clip, NewNum=60, NewDen=1, Preset='normal')
 
 </details>
 
+### Select Every 
+
+Selects every Nth frame from the clip to reduce frame rate
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Select every Nth frame
+# Full Docs: https://www.vapoursynth.com/doc/functions/video/selectevery.html
+
+cycle = 5  # Take 1 frame every N frames
+offsets = 0  # Which frame in the cycle to take
+
+clip = core.std.SelectEvery(clip, cycle=cycle, offsets=[offsets])
+```
+
+</details>
+
 ### sRestore 
 
 Restores original framerate by detecting and removing duplicate frames
@@ -1771,7 +1726,7 @@ clip = sRestoreMUVs(clip, frate=None, omode=6, mode=2, thresh=16)
 </details>
 
 
-## Hybrid,Frame Recovery
+## Frame Recovery
 
 ### Fill Drops RIFE 
 
@@ -1852,7 +1807,23 @@ clip = rmf.out
 </details>
 
 
-## Hybrid,Grain
+## Grain
+
+### FGrain 
+
+Very high quality and realistic grain generator that animates the grain, adds opacity options, and support for YUV. Grain is only applied to luma. Requires an Nvidia GPU.
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Full Docs: https://github.com/pifroggi/vs_grain
+
+import vs_grain
+clip = vs_grain.fgrain(clip, iterations=800, size=0.5, deviation=0.0, blur=0.9, opacity=0.1)
+```
+
+</details>
 
 ### Grain Factory 
 
@@ -1874,71 +1845,73 @@ clip = GrainFactory3(clip, g1str=7.0, g2str=5.0, g3str=3.0, g1shrp=60, g2shrp=66
 
 </details>
 
+### Grain Stabilize 
 
-## Hybrid,Lines
-
-### Hysteria 
-
-Darkens lines using edge detection and masking
+Stabilizes film grain to reduce temporal flickering
 
 <details>
 <summary>Show code</summary>
 
 ```python
-# Line darkening with edge masking
-# From hybrid_filters/hysteria.py
-import sys
-sys.path.insert(0, r'hybrid_filters')
-from hysteria import Hysteria
+# Stabilize grain (make it less flickery)
 
-clip = Hysteria(clip, strength=1.0, usemask=True, lowthresh=6, highthresh=20, luma_cap=191)
+from vstools import vs, core
+
+# Temporal smoothing of grain
+clip = core.rgvs.RemoveGrain(clip, mode=19)
 ```
 
 </details>
 
-### ProToon 
 
-Processes cartoons/anime with line darkening, thinning and sharpening
+## Hybrid
+
+### Add Duplicates 
+
+Detects frames with low temporal difference and duplicates the previous frame if below threshold
 
 <details>
 <summary>Show code</summary>
 
 ```python
-# Cartoon/anime processing with line darkening
-# From hybrid_filters/proToon.py
+# Add duplicate frames when temporal difference is below threshold
+# From hybrid_filters/AddDuplicates.py
 import sys
 sys.path.insert(0, r'hybrid_filters')
-from proToon import proToon
+from AddDuplicates import addDup
 
-clip = proToon(clip, strength=48, luma_cap=191, threshold=4, thinning=24, sharpen=True, mask=True)
+clip = addDup(clip, thresh=0.3, debug=False)
 ```
 
 </details>
 
+### Animate 
 
-## Hybrid,Masking
-
-### Retinex Edge Mask 
-
-Greatly improves edge detection accuracy in dark scenes using retinex algorithm
+Framework for animated effects and crossfade transitions between filters
 
 <details>
 <summary>Show code</summary>
 
 ```python
-# Improved edge detection for dark scenes using retinex
-# From hybrid_filters/masked.py
+# Apply animated effects and transitions
+# From hybrid_filters/animate.py
 import sys
 sys.path.insert(0, r'hybrid_filters')
-from masked import retinex_edgemask
+import animate
 
-clip = retinex_edgemask(clip, sigma=1, draft=False)
+# Define your animation functions
+# def effect1(clip): return clip.std.Convolution([1,2,1,2,4,2,1,2,1])
+# def effect2(clip): return clip.std.Sobel()
+
+# MAP = [
+#     (0, 100), [effect1],
+#     (101, 150), [animate.Crossfade(effect1, effect2)],
+#     (151, 200), [effect2]
+# ]
+# clip = animate.run(clip, MAP)
 ```
 
 </details>
-
-
-## Hybrid,Padding/Cropping
 
 ### Balance Borders 
 
@@ -1955,6 +1928,44 @@ sys.path.insert(0, r'hybrid_filters')
 from edge import bbmod
 
 clip = bbmod(clip, cTop=0, cBottom=0, cLeft=0, cRight=0, thresh=128, blur=999)
+```
+
+</details>
+
+### Change FPS 
+
+Convert framerate efficiently using precomputed lookup table for long clips
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Efficient framerate conversion for very long clips
+# From hybrid_filters/ChangeFPS.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from ChangeFPS import ChangeFPS
+
+clip = ChangeFPS(clip, target_fps_num=60, target_fps_den=1)
+```
+
+</details>
+
+### CQTGMC 
+
+Fast deinterlacing combining spatial and temporal methods
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Fast deinterlacing with QTGMC-like quality
+# From hybrid_filters/cqtgmc.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from cqtgmc import CQTGMC
+
+clip = CQTGMC(clip, Sharpness=0.25, thSAD1=192, thSAD2=320, tff=True, openCL=False)
 ```
 
 </details>
@@ -1978,93 +1989,24 @@ clip = CPreview(clip, CL=10, CR=10, CT=10, CB=10, Frame=False, Time=False, Type=
 
 </details>
 
+### DAA Anti-Aliasing 
 
-## Hybrid,Resizing
-
-### NNEDI3 Resample 
-
-High-quality resampling using NNEDI3 edge-directed interpolation
+Anti-aliasing with contra-sharpening by Didée, averages two independent interpolations
 
 <details>
 <summary>Show code</summary>
 
 ```python
-# High-quality resampling using NNEDI3
-# From hybrid_filters/nnedi3_resample.py
+# Didée's anti-aliasing with contra-sharpening
+# From hybrid_filters/antiAliasing.py
 import sys
 sys.path.insert(0, r'hybrid_filters')
-from nnedi3_resample import nnedi3_resample
+from antiAliasing import daa
 
-clip = nnedi3_resample(clip, target_width=1920, target_height=1080)
+clip = daa(clip)
 ```
 
 </details>
-
-### NNEDI3 rpow2 
-
-Enlarges images by powers of 2 using NNEDI3 with optional shift correction
-
-<details>
-<summary>Show code</summary>
-
-```python
-# Enlarge images by powers of 2 using NNEDI3
-# From hybrid_filters/nnedi3_rpow2.py
-import sys
-sys.path.insert(0, r'hybrid_filters')
-from nnedi3_rpow2 import nnedi3_rpow2
-
-clip = nnedi3_rpow2(clip, rfactor=2, correct_shift=True, kernel="spline36")
-```
-
-</details>
-
-
-## Hybrid,Sharpening
-
-### LSFmod Sharpen 
-
-Limited sharpening with range and nonlinear modes to avoid oversharpening
-
-<details>
-<summary>Show code</summary>
-
-```python
-# Limited sharpening with multiple modes
-# From hybrid_filters/sharpen.py
-import sys
-sys.path.insert(0, r'hybrid_filters')
-from sharpen import LSFmod
-
-clip = LSFmod(clip, strength=100, Smode=2, Lmode=1, edgemode=1, overshoot=1, undershoot=1)
-```
-
-</details>
-
-
-## Hybrid,Stabilization
-
-### Stabilize 
-
-CURRENTLY BROKEN - Stabilizes shaky video using motion estimation and compensation
-
-<details>
-<summary>Show code</summary>
-
-```python
-# Video stabilization using motion compensation
-# From hybrid_filters/stabilize.py
-import sys
-sys.path.insert(0, r'hybrid_filters')
-from stabilize import Stab
-
-clip = Stab(clip, range=1, dxmax=4, dymax=4, mirror=0)
-```
-
-</details>
-
-
-## Hybrid,Unresize
 
 ### Debicubic 
 
@@ -2100,6 +2042,44 @@ sys.path.insert(0, r'hybrid_filters')
 from descale import Debilinear
 
 clip = Debilinear(clip, width=1280, height=720, yuv444=False, gray=False)
+```
+
+</details>
+
+### Deblock QED 
+
+Postprocessed deblocking using full frequencies on edges, DCT-lowpassed on interiors
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Advanced deblocking with DCT-lowpass filtering
+# From hybrid_filters/deblock.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from deblock import Deblock_QED
+
+clip = Deblock_QED(clip, quant1=24, quant2=26, aOff1=1, bOff1=2, aOff2=1, bOff2=2, uv=3)
+```
+
+</details>
+
+### DeHalo Alpha (Old) 
+
+Reduces halo artifacts with separate controls for dark and bright halos
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Reduce halo artifacts from sharpening
+# From hybrid_filters/dehalo.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from dehalo import DeHalo_alpha
+
+clip = DeHalo_alpha(clip, rx=2.0, ry=2.0, darkstr=1.0, brightstr=1.0, lowsens=50.0, highsens=50.0, ss=1.5)
 ```
 
 </details>
@@ -2142,6 +2122,732 @@ clip = Despline36(clip, width=1280, height=720, yuv444=False, gray=False)
 
 </details>
 
+### DeSpot 
+
+Removes temporal spots and artifacts using motion-compensated cleaning
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Remove temporal spots and artifacts using motion compensation
+# From hybrid_filters/artifacts.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from artifacts import DeSpot
+
+clip = DeSpot(clip)
+```
+
+</details>
+
+### DFTTest2 
+
+Frequency domain denoising using DFT (Discrete Fourier Transform)
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Frequency domain denoising
+# From hybrid_filters/dfttest2.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from dfttest2 import DFTTest
+
+clip = DFTTest(clip, sigma=8.0)
+```
+
+</details>
+
+### Fade In 
+
+Fades in from black over specified number of frames
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Fade from black at the start of clip
+# From hybrid_filters/fade.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from fade import fadein
+
+clip = fadein(clip, fadeframes=30)
+```
+
+</details>
+
+### Fade Out 
+
+Fades clip to black over specified number of frames
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Fade to black at the end of clip
+# From hybrid_filters/fade.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from fade import fadeout
+
+clip = fadeout(clip, fadeframes=30)
+```
+
+</details>
+
+### Fill Drops RIFE 
+
+Fills dropped frames using RIFE AI-based interpolation
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Fill dropped frames using RIFE AI interpolation
+# From hybrid_filters/filldrops.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from filldrops import fillWithRIFE
+
+clip = fillWithRIFE(clip, firstframe=100, rifeModel=22, rifeTTA=False, rifeUHD=False)
+```
+
+</details>
+
+### Fill Drops SVP 
+
+Fills dropped frames using SVP (SmoothVideo Project) interpolation
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Fill dropped frames using SVP interpolation
+# From hybrid_filters/filldrops.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from filldrops import fillWithSVP
+
+clip = fillWithSVP(clip, firstframe=100, gpu=False)
+```
+
+</details>
+
+### Fill Duplicate Frames 
+
+Detects and replaces duplicate frames with interpolated frames
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Replace duplicate frames with interpolations
+# From hybrid_filters/FillDuplicateFrames.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from FillDuplicateFrames import FillDuplicateFrames
+
+fdf = FillDuplicateFrames(clip, mode='FillDuplicate', thresh=0.001, method='SVP', debug=False)
+clip = fdf.out
+```
+
+</details>
+
+### Fix Chroma Bleeding 
+
+Fixes chroma bleeding artifacts with adjustable strength and blur options
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Fix chroma bleeding artifacts
+# From hybrid_filters/chromaBleeding.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from chromaBleeding import FixChromaBleedingMod
+
+clip = FixChromaBleedingMod(clip, cx=4, cy=4, thr=4.0, strength=0.8, blur=False)
+```
+
+</details>
+
+### Frame Rate Converter 
+
+Increases frame rate with interpolation and fine artifact removal
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Advanced frame rate conversion with artifact removal
+# From hybrid_filters/FrameRateConverter.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from FrameRateConverter import FrameRateConverter
+
+clip = FrameRateConverter(clip, NewNum=60, NewDen=1, Preset='normal')
+```
+
+</details>
+
+### GradFun3 
+
+Advanced debanding combined with resizers for better detail preservation
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Advanced debanding with resizing support (GradFun3mod)
+# From hybrid_filters/deband.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from deband import GradFun3
+
+clip = GradFun3(clip, thr=0.35, radius=16, elast=3.0, mask=2, mode=2, ampo=1, ampn=0, pat=32, dyn=False, staticnoise=False, smode=2, thr_det=2 + round(max(thr - 0.35, 0) / 0.3), debug=False, plane=0, bits=None, dyn_resize=False)
+```
+
+</details>
+
+### Grain Factory 
+
+Advanced grain generation with separate controls for dark, midtone, and bright areas
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Add customizable film grain with separate controls for dark, midtone, and bright areas
+# From hybrid_filters/addGrain.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from addGrain import GrainFactory3
+
+clip = GrainFactory3(clip, g1str=7.0, g2str=5.0, g3str=3.0, g1shrp=60, g2shrp=66, g3shrp=80, 
+                     g1size=1.5, g2size=1.2, g3size=0.9, temp_avg=0, ontop_grain=0.0)
+```
+
+</details>
+
+### HQDering 
+
+Applies deringing using a smart smoother near edges where ringing occurs
+
+<details>
+<summary>Show code</summary>
+
+```python
+# High-quality deringing using smart edge smoothing
+# From hybrid_filters/dering.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from dering import HQDeringmod
+
+clip = HQDeringmod(clip, mrad=1, msmooth=1, incedge=False, mthr=60, thr=12.0, elast=2.0, show=False)
+```
+
+</details>
+
+### Hysteria 
+
+Darkens lines using edge detection and masking
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Line darkening with edge masking
+# From hybrid_filters/hysteria.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from hysteria import Hysteria
+
+clip = Hysteria(clip, strength=1.0, usemask=True, lowthresh=6, highthresh=20, luma_cap=191)
+```
+
+</details>
+
+### Killer Spots 
+
+Removes spots from primitive videos using motion compensation
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Aggressive spot removal for primitive videos
+# From hybrid_filters/killerspots.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from killerspots import KillerSpots
+
+clip = KillerSpots(clip, limit=10, advanced=False)
+```
+
+</details>
+
+### KNLMeans Denoise 
+
+Non-local means denoising with GPU acceleration support
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Non-local means denoising
+# From hybrid_filters/denoise.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from denoise import KNLMeansCL
+
+clip = KNLMeansCL(clip, d=None, a=None, s=None, h=None)
+```
+
+</details>
+
+### LSFmod Sharpen 
+
+Limited sharpening with range and nonlinear modes to avoid oversharpening
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Limited sharpening with multiple modes
+# From hybrid_filters/sharpen.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from sharpen import LSFmod
+
+clip = LSFmod(clip, strength=100, Smode=2, Lmode=1, edgemode=1, overshoot=1, undershoot=1)
+```
+
+</details>
+
+### LUTDeCrawl 
+
+Removes dot crawl artifacts from video
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Remove dot crawl artifacts
+# From hybrid_filters/decrawl.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from decrawl import LUTDeCrawl
+
+clip = LUTDeCrawl(clip, ythresh=10, cthresh=10, maxdiff=50, scnchg=25, usemaxdiff=True)
+```
+
+</details>
+
+### LUTDeRainbow 
+
+Removes rainbow artifacts from video
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Remove rainbow artifacts
+# From hybrid_filters/derainbow.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from derainbow import LUTDeRainbow
+
+clip = LUTDeRainbow(clip, cthresh=10, ythresh=10, y=True, linkUV=True)
+```
+
+</details>
+
+### NNEDI3 Resample 
+
+High-quality resampling using NNEDI3 edge-directed interpolation
+
+<details>
+<summary>Show code</summary>
+
+```python
+# High-quality resampling using NNEDI3
+# From hybrid_filters/nnedi3_resample.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from nnedi3_resample import nnedi3_resample
+
+clip = nnedi3_resample(clip, target_width=1920, target_height=1080)
+```
+
+</details>
+
+### NNEDI3 rpow2 
+
+Enlarges images by powers of 2 using NNEDI3 with optional shift correction
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Enlarge images by powers of 2 using NNEDI3
+# From hybrid_filters/nnedi3_rpow2.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from nnedi3_rpow2 import nnedi3_rpow2
+
+clip = nnedi3_rpow2(clip, rfactor=2, correct_shift=True, kernel="spline36")
+```
+
+</details>
+
+### Overlay 
+
+Overlays clips with various blend modes and positioning options
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Overlay clips with different blend modes
+# From hybrid_filters/misc.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from misc import Overlay
+
+# overlay_clip = ...
+# clip = Overlay(clip, overlay_clip, x=0, y=0, opacity=1.0, mode='normal')
+```
+
+</details>
+
+### Oyster 
+
+High-quality denoising using BM3D with motion compensation
+
+<details>
+<summary>Show code</summary>
+
+```python
+# High-quality denoising using BM3D
+# From hybrid_filters/Oyster.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from Oyster import Super_OYSTER
+
+clip = Super_OYSTER(clip, sfMode=3, prefilter=False)
+```
+
+</details>
+
+### ProToon 
+
+Processes cartoons/anime with line darkening, thinning and sharpening
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Cartoon/anime processing with line darkening
+# From hybrid_filters/proToon.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from proToon import proToon
+
+clip = proToon(clip, strength=48, luma_cap=191, threshold=4, thinning=24, sharpen=True, mask=True)
+```
+
+</details>
+
+### QTGMC (Old) 
+
+High-quality motion-compensated deinterlacing (QTGMC)
+
+<details>
+<summary>Show code</summary>
+
+```python
+# High-quality deinterlacing with motion compensation
+# From hybrid_filters/qtgmc.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from qtgmc import QTGMC
+
+clip = QTGMC(clip, Preset='Slower', FPSDivisor=1, TFF=None)
+```
+
+</details>
+
+### Rainbow Smooth 
+
+Removes rainbow artifacts using edge-aware chroma smoothing
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Remove rainbow artifacts with edge-aware smoothing
+# From hybrid_filters/RainbowSmooth.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from RainbowSmooth import RainbowSmooth
+
+clip = RainbowSmooth(clip, radius=3, lthresh=0, hthresh=220, mask="original")
+```
+
+</details>
+
+### Remove Dirt 
+
+Removes dirt and specks from video using temporal cleaning
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Remove dirt and specks from video
+# From hybrid_filters/removeDirt.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from removeDirt import RemoveDirt
+
+clip = RemoveDirt(clip, repmode=16, remgrainmode=17, limit=10)
+```
+
+</details>
+
+### Remove Dirt MC 
+
+Removes dirt using motion-compensated temporal cleaning
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Motion-compensated dirt removal
+# From hybrid_filters/removeDirt.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from removeDirt import RemoveDirtMC
+
+clip = RemoveDirtMC(clip, limit=6, repmode=16, remgrainmode=17, block_size=8, block_over=4, gpu=False)
+```
+
+</details>
+
+### Replace Multiple Frames 
+
+Replaces specified frame intervals with interpolated frames
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Replace specified frame intervals with interpolation
+# From hybrid_filters/ReplaceMultipleFrames.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from ReplaceMultipleFrames import ReplaceMultipleFrames
+
+rmf = ReplaceMultipleFrames(clip, intervals=[[100, 105], [200, 210]], method='SVP', debug=False)
+clip = rmf.out
+```
+
+</details>
+
+### Retinex Edge Mask 
+
+Greatly improves edge detection accuracy in dark scenes using retinex algorithm
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Improved edge detection for dark scenes using retinex
+# From hybrid_filters/masked.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from masked import retinex_edgemask
+
+clip = retinex_edgemask(clip, sigma=1, draft=False)
+```
+
+</details>
+
+### SMDegrain 
+
+Pure temporal denoiser using MVTools with motion compensation
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Simple MDegrain - Motion-compensated temporal denoising
+# From hybrid_filters/smdegrain.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from smdegrain import SMDegrain
+
+clip = SMDegrain(clip, tr=2, thSAD=300, RefineMotion=False, contrasharp=None, plane=4)
+```
+
+</details>
+
+### SpotLess 
+
+Strong temporal denoising optimized for removing spots and noise
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Strong temporal denoising using MVTools
+# From hybrid_filters/SpotLess.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from SpotLess import SpotLess
+
+clip = SpotLess(clip, radT=1, thsad=10000, chroma=True, truemotion=True)
+```
+
+</details>
+
+### sRestore 
+
+Restores original framerate by detecting and removing duplicate frames
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Restore original framerate from telecined/decimated content
+# From hybrid_filters/srestore.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from srestore import sRestoreMUVs
+
+clip = sRestoreMUVs(clip, frate=None, omode=6, mode=2, thresh=16)
+```
+
+</details>
+
+### Stabilize 
+
+CURRENTLY BROKEN - Stabilizes shaky video using motion estimation and compensation
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Video stabilization using motion compensation
+# From hybrid_filters/stabilize.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from stabilize import Stab
+
+clip = Stab(clip, range=1, dxmax=4, dymax=4, mirror=0)
+```
+
+</details>
+
+### STPresso 
+
+Dampens grain slightly while maintaining original look using spatial and temporal filtering
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Spatiotemporal grain dampening
+# From hybrid_filters/degrain.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from degrain import STPresso
+
+clip = STPresso(clip, limit=3, bias=24, RGmode=4, tthr=12, tlimit=3, tbias=49, back=1)
+```
+
+</details>
+
+### TFMBobN 
+
+Deinterlaces using TFM with NNEDI3 bobbing for field reconstruction
+
+<details>
+<summary>Show code</summary>
+
+```python
+# TFM + NNEDI3 bobbing deinterlace
+# From hybrid_filters/TFMBob.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from TFMBob import TFMBobN
+
+clip = TFMBobN(clip, pp=6, cthresh=9, MI=80, chroma=False, openCL=False)
+```
+
+</details>
+
+### TFMBobQ 
+
+Deinterlaces using TFM with QTGMC bobbing for field reconstruction
+
+<details>
+<summary>Show code</summary>
+
+```python
+# TFM + QTGMC bobbing deinterlace
+# From hybrid_filters/TFMBob.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from TFMBob import TFMBobQ
+
+clip = TFMBobQ(clip, pp=6, cthresh=9, MI=80, chroma=False, openCL=False)
+```
+
+</details>
+
+### Tweak 
+
+Adjusts hue, saturation, brightness and contrast with coring support
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Adjust hue, saturation, brightness and contrast
+# From hybrid_filters/color.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from color import Tweak
+
+clip = Tweak(clip, hue=None, sat=None, bright=None, cont=None, coring=True)
+```
+
+</details>
+
+### Vinverse 
+
+Small but effective function against residual combing by Didée
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Remove residual combing artifacts
+# From hybrid_filters/residual.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from residual import Vinverse
+
+clip = Vinverse(clip, sstr=2.7, amnt=255, chroma=True, scl=0.25)
+```
+
+</details>
+
 
 ## Limiting
 
@@ -2166,6 +2872,47 @@ elast = 2.0  # Elasticity
 # clip = limit_filter(filtered, original, thr=thr, elast=elast)
 
 clip = limit_filter(clip, clip, thr=thr, elast=elast)
+```
+
+</details>
+
+
+## Lines
+
+### Hysteria 
+
+Darkens lines using edge detection and masking
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Line darkening with edge masking
+# From hybrid_filters/hysteria.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from hysteria import Hysteria
+
+clip = Hysteria(clip, strength=1.0, usemask=True, lowthresh=6, highthresh=20, luma_cap=191)
+```
+
+</details>
+
+### ProToon 
+
+Processes cartoons/anime with line darkening, thinning and sharpening
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Cartoon/anime processing with line darkening
+# From hybrid_filters/proToon.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from proToon import proToon
+
+clip = proToon(clip, strength=48, luma_cap=191, threshold=4, thinning=24, sharpen=True, mask=True)
 ```
 
 </details>
@@ -2487,6 +3234,25 @@ clip = mask
 
 </details>
 
+### Retinex Edge Mask 
+
+Greatly improves edge detection accuracy in dark scenes using retinex algorithm
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Improved edge detection for dark scenes using retinex
+# From hybrid_filters/masked.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from masked import retinex_edgemask
+
+clip = retinex_edgemask(clip, sigma=1, draft=False)
+```
+
+</details>
+
 ### Ridge Mask 
 
 Creates a ridge mask for detecting lines and edges from vsmasktools
@@ -2584,6 +3350,25 @@ clip = core.text.Text(clip, text=text, alignment=alignment)
 
 ## Padding/Cropping
 
+### Balance Borders 
+
+Balances brightness at clip borders to fix edge artifacts
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Balance border brightness (bbmod)
+# From hybrid_filters/edge.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from edge import bbmod
+
+clip = bbmod(clip, cTop=0, cBottom=0, cLeft=0, cRight=0, thresh=128, blur=999)
+```
+
+</details>
+
 ### Crop 
 
 Crops a clip by the specified pixel amount.
@@ -2597,6 +3382,25 @@ Crops a clip by the specified pixel amount.
 
 import vs_tiletools
 clip = vs_tiletools.crop(clip, left=0, right=0, top=0, bottom=0)
+```
+
+</details>
+
+### Crop with Preview 
+
+Previews crop regions with visual overlay guides
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Preview crop regions with visual guides
+# From hybrid_filters/CPreview.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from CPreview import CPreview
+
+clip = CPreview(clip, CL=10, CR=10, CT=10, CB=10, Frame=False, Time=False, Type=1)
 ```
 
 </details>
@@ -2637,6 +3441,44 @@ clip = vs_tiletools.pad(clip, left=0, right=0, top=0, bottom=0, mode="mirror")
 
 
 ## Resizing
+
+### NNEDI3 Resample 
+
+High-quality resampling using NNEDI3 edge-directed interpolation
+
+<details>
+<summary>Show code</summary>
+
+```python
+# High-quality resampling using NNEDI3
+# From hybrid_filters/nnedi3_resample.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from nnedi3_resample import nnedi3_resample
+
+clip = nnedi3_resample(clip, target_width=1920, target_height=1080)
+```
+
+</details>
+
+### NNEDI3 rpow2 
+
+Enlarges images by powers of 2 using NNEDI3 with optional shift correction
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Enlarge images by powers of 2 using NNEDI3
+# From hybrid_filters/nnedi3_rpow2.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from nnedi3_rpow2 import nnedi3_rpow2
+
+clip = nnedi3_rpow2(clip, rfactor=2, correct_shift=True, kernel="spline36")
+```
+
+</details>
 
 ### Resize (%) _(bundled template)_
 
@@ -2808,8 +3650,53 @@ clip = core.lghost.LGhost(clip, mode=[1, 1], shift=[-3, -6], intensity=[10, 6], 
 
 </details>
 
+### TemporalFix (AI) 
 
-## Restoration,Stabilization
+Adds Temporal Coherence to Single Image AI Upscaling Models. More accurate and faster than the classic version.
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Full Docs: https://github.com/pifroggi/vs_temporalfix#temporalfix-ai-model
+
+strength    = 2           # Suppression strength, 1-3. Higher = more aggressive, may oversmooth small motion.
+tiles       = 1           # More tiles = less VRAM, slower. Only increase on low-end hardware.
+backend     = "tensorrt"  # "cpu", "cuda", or "tensorrt". tensorrt is fastest (Nvidia RTX), cuda needs any Nvidia GPU.
+num_streams = 1           # Parallel TensorRT streams. Higher can be faster on high-end GPUs. TensorRT backend only.
+exclude     = None        # Optionally exclude scenes, e.g. "[10 20] [600 900]"
+
+
+import vs_temporalfix
+clip = core.resize.Bilinear(clip, format=vs.RGBH, matrix_in_s="709")
+clip = vs_temporalfix.model(clip, strength=strength, tiles=tiles, backend=backend, num_streams=num_streams, exclude=exclude)
+clip = core.resize.Point(clip, format=vs.YUV444P16, matrix_s="709")
+```
+
+</details>
+
+### TemporalFix (Classic) 
+
+Adds Temporal Coherence to Single Image AI Upscaling Models. This is the older cpu based version.
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Full Docs: https://github.com/pifroggi/vs_temporalfix#temporalfix-classic
+# Increase strength if the effect is not strong enough. Check the docs for a full explanation.
+
+strength = 500
+tr       = 6
+denoise  = False
+exclude  = None
+
+
+import vs_temporalfix
+clip = vs_temporalfix.classic(clip, strength=strength, tr=tr, denoise=denoise, exclude=exclude)
+```
+
+</details>
 
 ### Undistort (PyTorch) 
 
@@ -2946,6 +3833,25 @@ clip = fine_sharp(clip, mode=mode, sstr=sstr)
 
 </details>
 
+### LSFmod Sharpen 
+
+Limited sharpening with range and nonlinear modes to avoid oversharpening
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Limited sharpening with multiple modes
+# From hybrid_filters/sharpen.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from sharpen import LSFmod
+
+clip = LSFmod(clip, strength=100, Smode=2, Lmode=1, edgemode=1, overshoot=1, undershoot=1)
+```
+
+</details>
+
 ### SBR Sharpening 
 
 Applies SBR sharpening - high-pass filter with re-blurred difference subtraction
@@ -3001,6 +3907,115 @@ blur = 2  # Pre-blur amount (0-3)
 depth = 16  # Warp depth (strength)
 
 clip = core.warp.AWarpSharp2(clip, blur=blur, depth=depth)
+```
+
+</details>
+
+
+## Stabilization
+
+### Stabilize 
+
+CURRENTLY BROKEN - Stabilizes shaky video using motion estimation and compensation
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Video stabilization using motion compensation
+# From hybrid_filters/stabilize.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from stabilize import Stab
+
+clip = Stab(clip, range=1, dxmax=4, dymax=4, mirror=0)
+```
+
+</details>
+
+### Undistort (PyTorch) 
+
+Removes distortions, turbulance, heat haze, or similar. PyTorch is slower, but has extra controls.
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Full Docs: https://github.com/pifroggi/vs_undistort?tab=readme-ov-file#pytorch-backend
+
+temp_window   = 10
+tile_width    = None
+tile_height   = None
+overlap       = None
+interpolation = "bilinear"
+scales        = [True, True, True]
+
+
+import vs_undistort
+clip = core.resize.Bilinear(clip, format=vs.RGBH, matrix_in_s=709)
+clip = vs_undistort.pytorch(clip, temp_window=temp_window, tile_width=tile_width, tile_height=tile_height, overlap=overlap, scales=scales, interpolation=interpolation, device="cuda")
+clip = core.resize.Point(clip, format=vs.YUV444P16, matrix_s=709)
+```
+
+</details>
+
+### Undistort (TensorRT) 
+
+Removes distortions, turbulance, heat haze, or similar. TensorRT is faster, but has less controls.
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Full Docs: https://github.com/pifroggi/vs_undistort?tab=readme-ov-file#tensorrt-backend
+
+temp_window   = 10
+tile_width    = None
+tile_height   = None
+overlap       = None
+num_streams   = 1
+activate      = False  # When True, a TensorRT engine will be build and the filter activated the next time the script is evaluated. This may take a few minutes.
+
+
+import vs_undistort
+clip = core.resize.Bilinear(clip, format=vs.RGBH, matrix_in_s=709)
+if activate:
+    clip = vs_undistort.tensorrt(clip, temp_window=temp_window, tile_width=tile_width, tile_height=tile_height, overlap=overlap, num_streams=num_streams)
+clip = core.resize.Point(clip, format=vs.YUV444P16, matrix_s=709)
+```
+
+</details>
+
+
+## Telecine
+
+### VIVTC 
+
+Inverse telecine to convert 30i/60i back to original 24p film
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Inverse telecine (30i to 24p conversion)
+# Converts to 8 bit colors to function
+# Full Docs: https://github.com/vapoursynth/vivtc
+
+from vstools import vs, core
+
+order = 1  # Field order (0=bottom first, 1=top first)
+
+# Convert to YUV420P8 if needed (VFM only supports specific formats)
+original_clip = clip
+if clip.format.id not in [vs.YUV420P8, vs.YUV422P8, vs.YUV440P8, vs.YUV444P8, vs.GRAY8]:
+    clip = core.resize.Bicubic(clip, format=vs.YUV422P8)
+
+clip = core.vivtc.VFM(clip, order=order)
+clip = core.vivtc.VDecimate(clip)
+
+# Convert back to original format if it was changed
+if original_clip.format.id != clip.format.id:
+    clip = core.resize.Bicubic(clip, format=original_clip.format)
 ```
 
 </details>
@@ -3063,9 +4078,6 @@ clip = core.tmedian.TemporalMedian(clip, radius=radius)
 ```
 
 </details>
-
-
-## Temporal Smoothing,Restoration
 
 ### TemporalFix (AI) 
 
@@ -3211,6 +4223,85 @@ Rotates the clip 180 degrees (upside down)
 # Rotate clip 180 degrees
 
 clip = core.std.Turn180(clip)
+```
+
+</details>
+
+
+## Unresize
+
+### Debicubic 
+
+Reverses bicubic upscaling to restore original resolution
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Reverse bicubic upscaling
+# From hybrid_filters/descale.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from descale import Debicubic
+
+clip = Debicubic(clip, width=1280, height=720, b=0.0, c=0.5, yuv444=False, gray=False)
+```
+
+</details>
+
+### Debilinear 
+
+Reverses bilinear upscaling to restore original resolution
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Reverse bilinear upscaling
+# From hybrid_filters/descale.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from descale import Debilinear
+
+clip = Debilinear(clip, width=1280, height=720, yuv444=False, gray=False)
+```
+
+</details>
+
+### Delanczos 
+
+Reverses Lanczos upscaling to restore original resolution
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Reverse Lanczos upscaling
+# From hybrid_filters/descale.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from descale import Delanczos
+
+clip = Delanczos(clip, width=1280, height=720, taps=3, yuv444=False, gray=False)
+```
+
+</details>
+
+### Despline36 
+
+Reverses Spline36 upscaling to restore original resolution
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Reverse Spline36 upscaling
+# From hybrid_filters/descale.py
+import sys
+sys.path.insert(0, r'hybrid_filters')
+from descale import Despline36
+
+clip = Despline36(clip, width=1280, height=720, yuv444=False, gray=False)
 ```
 
 </details>
@@ -3428,6 +4519,22 @@ clip = shift_clip(clip, offset=offset)
 
 </details>
 
+### Side by Side 
+
+Stacks the current clip next to the original clip.
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Full Docs: https://www.vapoursynth.com/doc/functions/video/stackvertical_stackhorizontal.html
+
+original_clip_resized = core.resize.Bilinear(original_clip, format=clip.format, width=clip.width, height=clip.height)
+clip = core.std.StackHorizontal([original_clip_resized, clip])
+```
+
+</details>
+
 ### Splice Clips 
 
 Splices/concatenates multiple clips together end-to-end
@@ -3464,25 +4571,6 @@ first_frame = 0  # First frame to keep
 last_frame = 1000  # Last frame to keep
 
 clip = core.std.Trim(clip, first=first_frame, last=last_frame)
-```
-
-</details>
-
-
-## Utility,Comparison
-
-### Side by Side 
-
-Stacks the current clip next to the original clip.
-
-<details>
-<summary>Show code</summary>
-
-```python
-# Full Docs: https://www.vapoursynth.com/doc/functions/video/stackvertical_stackhorizontal.html
-
-original_clip_resized = core.resize.Bilinear(original_clip, format=clip.format, width=clip.width, height=clip.height)
-clip = core.std.StackHorizontal([original_clip_resized, clip])
 ```
 
 </details>

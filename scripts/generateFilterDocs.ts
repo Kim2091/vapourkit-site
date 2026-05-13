@@ -18,7 +18,7 @@ const siteRoot = resolve(__dirname, '..');
 
 interface VkFilter {
   name: string;
-  category: string;
+  categories: string[];
   description: string;
   code: string;
   source: 'plugin' | 'template';
@@ -37,6 +37,15 @@ function findRepoPath(): string {
   );
 }
 
+function normalizeCategories(raw: unknown): string[] {
+  if (Array.isArray(raw)) {
+    const cats = raw.map((c) => String(c).trim()).filter(Boolean);
+    return cats.length > 0 ? cats : ['Uncategorized'];
+  }
+  if (typeof raw === 'string' && raw.trim()) return [raw.trim()];
+  return ['Uncategorized'];
+}
+
 function readVkFilters(dir: string, source: 'plugin' | 'template'): VkFilter[] {
   if (!existsSync(dir) || !statSync(dir).isDirectory()) return [];
 
@@ -47,7 +56,7 @@ function readVkFilters(dir: string, source: 'plugin' | 'template'): VkFilter[] {
     const parsed = TOML.parse(text) as Record<string, unknown>;
     return {
       name: String(parsed.name ?? file.replace(/\.vkfilter$/, '')),
-      category: String(parsed.category ?? 'Uncategorized'),
+      categories: normalizeCategories(parsed.category),
       description: String(parsed.description ?? '').trim(),
       code: String(parsed.code ?? '').trim(),
       source,
@@ -59,9 +68,11 @@ function readVkFilters(dir: string, source: 'plugin' | 'template'): VkFilter[] {
 function groupByCategory(filters: VkFilter[]): Map<string, VkFilter[]> {
   const groups = new Map<string, VkFilter[]>();
   for (const f of filters) {
-    const existing = groups.get(f.category) ?? [];
-    existing.push(f);
-    groups.set(f.category, existing);
+    for (const cat of f.categories) {
+      const existing = groups.get(cat) ?? [];
+      existing.push(f);
+      groups.set(cat, existing);
+    }
   }
   for (const list of groups.values()) {
     list.sort((a, b) => a.name.localeCompare(b.name));
