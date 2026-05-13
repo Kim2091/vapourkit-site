@@ -1,0 +1,90 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Theme tokens — defined as RGB triplets so Tailwind's `/<alpha>` modifier works.
+   Light is default; data-theme="dark" flips them. */
+:root,
+:root[data-theme="light"] {
+  --vk-bg: 250 250 251;
+  --vk-surface: 255 255 255;
+  --vk-surface-2: 243 244 246;
+  --vk-elevated: 229 231 235;
+  --vk-text: 17 24 39;
+  --vk-text-muted: 55 65 81;
+  --vk-text-subtle: 107 114 128;
+  --vk-border: 0 0 0;
+  --vk-border-strong: 0 0 0;
+  --vk-border-alpha: 0.08;
+  --vk-border-strong-alpha: 0.14;
+  --vk-hero-glow-1: rgba(139, 92, 246, 0.12);
+  --vk-hero-glow-2: rgba(59, 130, 246, 0.08);
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --vk-bg: 21 23 30;
+  --vk-surface: 27 30 38;
+  --vk-surface-2: 23 25 32;
+  --vk-elevated: 33 36 45;
+  --vk-text: 243 244 246;
+  --vk-text-muted: 209 213 219;
+  --vk-text-subtle: 156 163 175;
+  --vk-border: 255 255 255;
+  --vk-border-strong: 255 255 255;
+  --vk-border-alpha: 0.08;
+  --vk-border-strong-alpha: 0.14;
+  --vk-hero-glow-1: rgba(139, 92, 246, 0.18);
+  --vk-hero-glow-2: rgba(59, 130, 246, 0.12);
+  color-scheme: dark;
+}
+
+/* Targeted preflight: starlight-tailwind disables full Preflight, so we add
+   back the resets the landing page needs without breaking Starlight pages. */
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  body {
+    margin: 0;
+  }
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+  button {
+    background: transparent;
+    border: 0;
+    padding: 0;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+  }
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-weight: inherit;
+    font-size: inherit;
+    margin: 0;
+  }
+  p {
+    margin: 0;
+  }
+}
+
+@layer utilities {
+  .text-gradient-brand {
+    background: linear-gradient(135deg, #2298ff 0%, #8b5cf6 50%, #de7cff 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .bg-icon-mark {
+    background: linear-gradient(135deg, #2298ff 30%, #8b5cf6 70%, #de7cff 100%);
+  }
+}

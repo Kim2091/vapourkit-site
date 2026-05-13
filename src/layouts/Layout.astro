@@ -1,0 +1,64 @@
+---
+import '../styles/tailwind.css';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const {
+  title = 'Vapourkit — AI Video Upscaling for Windows',
+  description = 'Free, open source video upscaling with AI models. Real-time preview, side-by-side comparison, batch processing.',
+} = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="generator" content={Astro.generator} />
+    <meta name="description" content={description} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <title>{title}</title>
+    <script is:inline>
+      // Dark mode is the default. Respect the user's stored preference (which
+      // matches Starlight's localStorage key, so toggling on either surface
+      // syncs to the other), and fall back to dark — not system preference.
+      (() => {
+        let stored;
+        try { stored = localStorage.getItem('starlight-theme'); } catch (_) {}
+        const theme = stored === 'light' || stored === 'dark' ? stored : 'dark';
+        document.documentElement.dataset.theme = theme;
+        if (!stored) {
+          try { localStorage.setItem('starlight-theme', 'dark'); } catch (_) {}
+        }
+      })();
+    </script>
+  </head>
+  <body class="bg-vk-bg text-vk-text antialiased">
+    <slot />
+    <script is:inline>
+      // Theme toggle wiring for the landing page nav. Writes to the same
+      // localStorage key Starlight reads.
+      (() => {
+        const btn = document.getElementById('vk-theme-toggle');
+        if (!btn) return;
+        const root = document.documentElement;
+        const apply = (theme) => {
+          root.dataset.theme = theme;
+          localStorage.setItem('starlight-theme', theme);
+          btn.setAttribute('aria-label', theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode');
+        };
+        apply(root.dataset.theme || 'light');
+        btn.addEventListener('click', () => {
+          apply(root.dataset.theme === 'dark' ? 'light' : 'dark');
+        });
+      })();
+    </script>
+  </body>
+</html>
