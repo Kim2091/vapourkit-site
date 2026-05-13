@@ -26,7 +26,7 @@ Vapourkit has two reusable artifacts:
 
 ### Load a workflow
 
-Loading completely replaces your current configuration. Use it when you want to switch to a saved pipeline from scratch.
+Click the **folder** icon in the header to *temporarily load* a workflow. Loading completely replaces your current configuration with the saved pipeline; unlike Import, the loaded workflow isn't merged into your current state.
 
 ## Filter templates
 

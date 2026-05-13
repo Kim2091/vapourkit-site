@@ -11,7 +11,7 @@ Open an issue on [GitHub](https://github.com/Kim2091/vapourkit/issues) with:
 
 - Your OS, GPU, and driver version
 - The exact steps to reproduce
-- Any relevant log output (Vapourkit writes to `main.log` in the install directory)
+- Any relevant log output (Vapourkit writes to `data/logs/main.log` inside the install directory)
 
 ## Pull requests
 

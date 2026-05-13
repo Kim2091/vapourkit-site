@@ -28,6 +28,6 @@ Use the **Upload** icon in the Vapourkit header to export the current pipeline. 
 
 ## Supported video formats
 
-**Input:** MP4, AVI, MKV, MOV, WebM, FLV, WMV
+**Input:** MP4, M4V, MKV, AVI, MOV, WebM, FLV, WMV
 
-**Output:** MP4, MKV, AVI, MOV, WebM
+**Output:** MKV, MP4, MOV, AVI

@@ -33,7 +33,6 @@ A great place to find supported models is the [OpenModelDB](https://openmodeldb.
 
 ## Where models live
 
-- Built-in: `include/models/` inside the Vapourkit install
-- Runtime: `data/models/` for user-imported models
+At runtime, all models — both bundled and user-imported — live in `data/models/` inside your Vapourkit install directory.
 
 For bringing your own, see [Custom ONNX Models](/models/custom-onnx).

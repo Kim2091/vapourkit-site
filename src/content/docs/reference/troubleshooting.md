@@ -7,7 +7,7 @@ description: Common problems and how to fix them.
 
 ## Setup fails
 
-If the first-launch setup fails partway through, you can rerun setup from the menu without losing already-installed components.
+If the first-launch setup fails partway through, restart Vapourkit and setup will resume from where it left off. The plugins-and-filters stage can also be re-run later from the **Plugins** menu in the header without losing other components.
 
 ## TensorRT errors
 
@@ -15,16 +15,16 @@ Make sure your NVIDIA driver is at least version `580.x`. Older drivers won't lo
 
 ## DirectML is slow
 
-DirectML is more compatible but slower than TensorRT. If you have an NVIDIA GPU, prefer TensorRT.
+DirectML is more compatible but slower than TensorRT. If you have a supported NVIDIA GPU, prefer TensorRT.
 
 ## Out of memory
 
 If processing fails with an out-of-memory error:
 
-- Lower the input resolution by adding a Resize filter before the model.
-- Process at smaller tile sizes (configurable in the model settings).
+- Add a *Resize* filter before the model to lower the working resolution.
 - Close other GPU-heavy applications.
+- Try DirectML instead of TensorRT if you're on NVIDIA — it has different memory characteristics.
 
 ## Missing plugins
 
-If filter previews fail with errors about missing VapourSynth functions, the plugin install may have been skipped or interrupted. Reinstall plugins from the Plugins menu.
+If filter previews fail with errors about missing VapourSynth functions, the plugin install may have been skipped or interrupted. Reinstall plugins from the **Plugins** menu in the header.

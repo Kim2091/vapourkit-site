@@ -13,14 +13,19 @@ description: Download Vapourkit and install dependencies on first launch.
 2. Launch Vapourkit.
 3. On first launch, click **Start Setup** when prompted to install dependencies.
 
-The setup flow installs:
+The setup flow installs, in order:
 
-- VapourSynth and `vs-mlrt`
-- Bundled VapourSynth plugins
-- Python dependencies (PyTorch, etc.)
-- Filter templates and helper scripts
+- VapourSynth Portable
+- BestSource (video reading library)
+- The bundled Video Compare tool
+- vs-mlrt ONNX Runtime (DirectML backend)
+- vs-mlrt TensorRT (NVIDIA backend — only on supported GPUs)
+- Python Embedded
+- Bundled ONNX upscaling models
+- FFmpeg
+- Plugins & filters (PyTorch, vsjetpack, bundled VapourSynth plugins, helper scripts, filter templates)
 
-Setup runs once. Subsequent launches go straight to the main app.
+Setup runs once. Subsequent launches go straight to the main app. The plugins-and-filters stage can also be re-run later from the **Plugins** menu in the header.
 
 ## System requirements
 
@@ -30,7 +35,7 @@ Setup runs once. Subsequent launches go straight to the main app.
 - **GPU:**
   - 6 GB VRAM minimum
   - NVIDIA 16xx series or newer (TensorRT) with driver 580.x or newer
-  - Or any AMD/Intel/NVIDIA GPU with DirectX 12 support (DirectML)
+  - Or any AMD/Intel GPU with DirectX 12 support (DirectML)
 
 ## Next
 

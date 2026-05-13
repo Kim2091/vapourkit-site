@@ -7,18 +7,18 @@ The simplest Vapourkit workflow: drop in a video, pick a model, press go.
 
 ## Process a single video
 
-1. **Add a video.** Drag and drop the file, or click the input area to browse.
+1. **Add a video.** Drag and drop into the *Input Video* panel, or click to browse.
 2. **Pick a model.** Choose an upscaling model. Different models target different content types — see [Included Models](/models/included).
-3. **Pick a backend.** TensorRT (NVIDIA) or DirectML (any GPU). The default is usually right.
-4. **Configure output.** Set the save location and the container format.
-5. **Upscale.** Click *Upscale Video*. Processing starts and the preview updates as frames complete.
+3. **Pick a backend.** TensorRT (NVIDIA) or DirectML (AMD/Intel). The default is usually right.
+4. **Configure output.** In *Output Settings*, set the save location and the container format.
+5. **Process.** Click *Start Processing*. The *Output Preview* panel updates as frames complete.
 
 ## Preview and compare
 
-While processing, the preview pane shows the latest output frame. Once it's done:
+While processing, the *Output Preview* panel shows the latest output frame. Once it's done:
 
-- *Preview Output* — plays the finished file.
-- *Compare Videos* — opens the built-in side-by-side viewer with the original and upscaled file aligned frame-for-frame.
+- *Compare* — launches the bundled side-by-side video viewer with the original and upscaled file aligned frame-for-frame.
+- *Open Folder* — opens File Explorer at the output location.
 
 ## Where to go next
 
