@@ -380,10 +380,10 @@ const base = rawBase.endsWith('/') ? rawBase : `${rawBase}/`;
           {
             sysreqs.map((r, i) => (
               <div
-                class={`flex justify-between py-2 ${i < sysreqs.length - 1 ? 'border-b border-vk-border/5' : ''}`}
+                class={`grid grid-cols-[auto_1fr] items-baseline gap-x-4 py-2 sm:gap-x-6 ${i < sysreqs.length - 1 ? 'border-b border-vk-border/5' : ''}`}
               >
                 <span>{r.label}</span>
-                <span class="text-vk-text">{r.value}</span>
+                <span class="text-right text-vk-text">{r.value}</span>
               </div>
             ))
           }
