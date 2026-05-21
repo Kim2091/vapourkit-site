@@ -60,35 +60,56 @@ const base = rawBase.endsWith('/') ? rawBase : `${rawBase}/`;
 <Layout>
   <!-- Top nav -->
   <header
-    class="sticky top-0 z-40 border-b border-vk-border/8 bg-vk-bg/75 backdrop-blur-md"
+    class="sticky top-0 z-40 border-b border-vk-elevated bg-vk-bg/75 backdrop-blur-md"
   >
-    <div class="mx-auto flex max-w-6xl items-center justify-between px-6 py-3.5">
-      <a href={base} class="flex items-center gap-2.5">
-        <img src={`${base}favicon.svg`} alt="" class="h-6 w-6" />
-        <strong class="text-sm">Vapourkit</strong>
-      </a>
-      <nav class="hidden items-center gap-6 text-sm text-vk-text-muted md:flex">
-        <a href="#features" class="hover:text-vk-text transition-colors">Features</a>
-        <a href="#tour" class="hover:text-vk-text transition-colors">Screenshots</a>
-        <a href="#models" class="hover:text-vk-text transition-colors">Models</a>
-        <a href={`${base}introduction/`} class="hover:text-vk-text transition-colors">Docs</a>
-        <a href="#community" class="hover:text-vk-text transition-colors">Discord</a>
-        <button
-          id="vk-theme-toggle"
-          aria-label="Toggle theme"
-          class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-vk-border/10 text-vk-text-muted transition-colors hover:border-vk-border/20 hover:text-vk-text"
-        >
-          <span data-theme-show="light"><Icon name="moon" size={15} /></span>
-          <span data-theme-show="dark" class="hidden"><Icon name="sun" size={15} /></span>
-        </button>
-        <a
-          href="https://ko-fi.com/s/2e5ebd456d"
-          target="_blank"
-          rel="noopener"
-          class="rounded-md border border-vk-brand-purple/35 bg-vk-elevated px-3.5 py-1.5 font-medium text-vk-text transition-colors hover:border-vk-brand-purple/65"
-        >
-          Download
+    <div class="mx-auto max-w-6xl px-6">
+      <!-- Main row: real destinations -->
+      <div class="flex items-center justify-between py-3.5">
+        <a href={base} class="flex items-center gap-2.5">
+          <img src={`${base}favicon.svg`} alt="" class="h-6 w-6" />
+          <strong class="text-sm">Vapourkit</strong>
         </a>
+        <nav class="hidden items-center gap-6 text-sm text-vk-text-muted md:flex">
+          <a href={`${base}introduction/`} class="hover:text-vk-text transition-colors">Docs</a>
+          <a href={`${base}reference/troubleshooting/`} class="hover:text-vk-text transition-colors">FAQ</a>
+          <a
+            href="https://github.com/Kim2091/vapourkit"
+            target="_blank"
+            rel="noopener"
+            class="hover:text-vk-text transition-colors"
+          >GitHub</a>
+          <a
+            href="https://discord.gg/uYKMn2hGwB"
+            target="_blank"
+            rel="noopener"
+            class="hover:text-vk-text transition-colors"
+          >Discord</a>
+          <button
+            id="vk-theme-toggle"
+            aria-label="Toggle theme"
+            class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-vk-border/10 text-vk-text-muted transition-colors hover:border-vk-border/20 hover:text-vk-text"
+          >
+            <span data-theme-show="light"><Icon name="moon" size={15} /></span>
+            <span data-theme-show="dark" class="hidden"><Icon name="sun" size={15} /></span>
+          </button>
+          <a
+            href="https://ko-fi.com/s/2e5ebd456d"
+            target="_blank"
+            rel="noopener"
+            class="rounded-md border border-vk-brand-purple/35 bg-vk-elevated px-3.5 py-1.5 font-medium text-vk-text transition-colors hover:border-vk-brand-purple/65"
+          >
+            Download
+          </a>
+        </nav>
+      </div>
+      <!-- Subheader: in-page anchors -->
+      <nav
+        class="hidden h-9 items-center justify-center gap-7 border-t border-vk-elevated text-[11px] uppercase tracking-[0.08em] text-vk-text-subtle md:flex"
+      >
+        <a href="#features" class="hover:text-vk-text-muted transition-colors">Features</a>
+        <a href="#tour" class="hover:text-vk-text-muted transition-colors">Screenshots</a>
+        <a href="#models" class="hover:text-vk-text-muted transition-colors">Models</a>
+        <a href="#community" class="hover:text-vk-text-muted transition-colors">Community</a>
       </nav>
     </div>
   </header>
