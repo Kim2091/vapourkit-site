@@ -1,0 +1,47 @@
+---
+import Icon from './Icon.astro';
+---
+
+<div class="fixed bottom-4 right-4 z-50 flex flex-col items-center gap-2">
+  <button
+    id="vk-scroll-up"
+    aria-label="Scroll to top"
+    class="hidden inline-flex h-10 w-10 items-center justify-center rounded-full border border-vk-border/10 bg-vk-bg/90 text-vk-text-muted shadow-lg backdrop-blur-sm transition-colors hover:border-vk-border/25 hover:text-vk-text"
+  >
+    <Icon name="arrow-up" size={16} />
+  </button>
+  <button
+    id="vk-theme-toggle"
+    aria-label="Toggle theme"
+    class="inline-flex h-10 w-10 items-center justify-center rounded-full border border-vk-border/10 bg-vk-bg/90 text-vk-text-muted shadow-lg backdrop-blur-sm transition-colors hover:border-vk-border/25 hover:text-vk-text"
+  >
+    <span data-theme-show="light"><Icon name="moon" size={16} /></span>
+    <span data-theme-show="dark" class="hidden"><Icon name="sun" size={16} /></span>
+  </button>
+</div>
+
+<script is:inline>
+  (() => {
+    const up = document.getElementById('vk-scroll-up');
+    if (up) {
+      up.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+      const update = () => up.classList.toggle('hidden', window.scrollY < 100);
+      window.addEventListener('scroll', update, { passive: true });
+      window.addEventListener('resize', update);
+      update();
+    }
+    const btn = document.getElementById('vk-theme-toggle');
+    if (btn) {
+      const root = document.documentElement;
+      const apply = (theme) => {
+        root.dataset.theme = theme;
+        try { localStorage.setItem('starlight-theme', theme); } catch (_) {}
+        btn.setAttribute('aria-label', theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode');
+      };
+      apply(root.dataset.theme || 'dark');
+      btn.addEventListener('click', () => {
+        apply(root.dataset.theme === 'dark' ? 'light' : 'dark');
+      });
+    }
+  })();
+</script>

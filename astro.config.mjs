@@ -8,10 +8,12 @@ export default defineConfig({
     starlight({
       title: 'Vapourkit Docs',
       description: 'Documentation for Vapourkit — AI video upscaling and enhancement.',
+      components: {
+        Footer: './src/components/StarlightFooter.astro',
+      },
       favicon: '/favicon.svg',
       logo: {
-        src: './src/assets/wordmark.svg',
-        replacesTitle: true,
+        src: './src/assets/icon.svg',
       },
       social: {
         github: 'https://github.com/Kim2091/vapourkit',

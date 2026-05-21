@@ -1,6 +1,12 @@
 /* Starlight theme overrides — matches the landing-page palette in both themes.
    Starlight handles `data-theme` toggling natively; we just provide values. */
 
+/* The floating toggle handles theme; hide Starlight's native ThemeSelect
+   (and its surrounding divider) in the docs header. */
+starlight-theme-select {
+  display: none;
+}
+
 :root[data-theme="dark"] {
   --sl-color-accent-low: #1e1b4b;
   --sl-color-accent: #8b5cf6;

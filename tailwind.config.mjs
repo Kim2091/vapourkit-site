@@ -6,6 +6,11 @@ export default {
   darkMode: ['class', '[data-theme="dark"]'],
   theme: {
     extend: {
+      opacity: {
+        6: '0.06',
+        8: '0.08',
+        12: '0.12',
+      },
       colors: {
         'vk-bg': 'rgb(var(--vk-bg) / <alpha-value>)',
         'vk-surface': 'rgb(var(--vk-surface) / <alpha-value>)',

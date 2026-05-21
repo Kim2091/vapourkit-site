@@ -1,6 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import Icon from '../components/Icon.astro';
+import FloatingToggle from '../components/FloatingToggle.astro';
 
 const features = [
   {
@@ -26,7 +27,7 @@ const features = [
   {
     icon: 'code',
     title: 'Custom filters',
-    desc: 'Write VapourSynth filters and chain them.',
+    desc: 'Write your own, or install any VapourSynth script/plugin.',
   },
   {
     icon: 'save',
@@ -46,11 +47,19 @@ const models = [
   { name: 'UltraSharpV2' },
 ];
 
+const filters = [
+  { name: 'vs-jetpack' },
+  { name: 'TemporalFix' },
+  { name: 'QTGMC' },
+  { name: 'RIFE' },
+];
+
 const sysreqs = [
   { label: 'OS', value: 'Windows 10/11 (x64)' },
   { label: 'RAM', value: '8 GB +' },
   { label: 'Storage', value: '5 GB min · 10 GB recommended' },
-  { label: 'GPU', value: '6 GB VRAM + · NVIDIA 16xx (TensorRT) or DX12 (DirectML)' },
+  { label: 'GPU', value: 'NVIDIA 16xx+ or any DX12-capable card' },
+  { label: 'VRAM', value: '6 GB +' },
 ];
 
 const rawBase = import.meta.env.BASE_URL;
@@ -60,7 +69,7 @@ const base = rawBase.endsWith('/') ? rawBase : `${rawBase}/`;
 <Layout>
   <!-- Top nav -->
   <header
-    class="sticky top-0 z-40 border-b border-vk-border/8 bg-vk-bg/75 backdrop-blur-md"
+    class="sticky top-0 z-40 border-b border-vk-border/10 bg-vk-bg/75 backdrop-blur-md"
   >
     <div class="mx-auto max-w-6xl px-6">
       <!-- Main row: real destinations -->
@@ -72,26 +81,35 @@ const base = rawBase.endsWith('/') ? rawBase : `${rawBase}/`;
         <nav class="hidden items-center gap-6 text-sm text-vk-text-muted md:flex">
           <a href={`${base}introduction/`} class="hover:text-vk-text transition-colors">Docs</a>
           <a href={`${base}reference/troubleshooting/`} class="hover:text-vk-text transition-colors">FAQ</a>
-          <a
-            href="https://github.com/Kim2091/vapourkit"
-            target="_blank"
-            rel="noopener"
-            class="hover:text-vk-text transition-colors"
-          >GitHub</a>
-          <a
-            href="https://discord.gg/uYKMn2hGwB"
-            target="_blank"
-            rel="noopener"
-            class="hover:text-vk-text transition-colors"
-          >Discord</a>
-          <button
-            id="vk-theme-toggle"
-            aria-label="Toggle theme"
-            class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-vk-border/10 text-vk-text-muted transition-colors hover:border-vk-border/20 hover:text-vk-text"
-          >
-            <span data-theme-show="light"><Icon name="moon" size={15} /></span>
-            <span data-theme-show="dark" class="hidden"><Icon name="sun" size={15} /></span>
-          </button>
+          <div class="flex items-center gap-2">
+            <a
+              href="https://github.com/Kim2091/vapourkit"
+              target="_blank"
+              rel="noopener"
+              aria-label="GitHub"
+              class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-vk-border/10 text-vk-text-muted transition-colors hover:border-vk-border/20 hover:text-vk-text"
+            >
+              <Icon name="github" size={15} />
+            </a>
+            <a
+              href="https://discord.gg/uYKMn2hGwB"
+              target="_blank"
+              rel="noopener"
+              aria-label="Discord"
+              class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-vk-border/10 text-vk-text-muted transition-colors hover:border-vk-border/20 hover:text-vk-text"
+            >
+              <Icon name="discord" size={15} />
+            </a>
+            <a
+              href="https://ko-fi.com/kim20913944"
+              target="_blank"
+              rel="noopener"
+              aria-label="Ko-fi"
+              class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-vk-border/10 text-vk-text-muted transition-colors hover:border-vk-border/20 hover:text-vk-text"
+            >
+              <Icon name="coffee" size={15} />
+            </a>
+          </div>
           <a
             href="https://ko-fi.com/s/2e5ebd456d"
             target="_blank"
@@ -104,10 +122,11 @@ const base = rawBase.endsWith('/') ? rawBase : `${rawBase}/`;
       </div>
       <!-- Subheader: in-page anchors -->
       <nav
-        class="hidden h-9 items-center justify-center gap-7 border-t border-vk-border/6 text-[11px] uppercase tracking-[0.08em] text-vk-text-subtle md:flex"
+        class="hidden h-9 items-center justify-center gap-7 border-t border-vk-border/8 text-[11px] uppercase tracking-[0.08em] text-vk-text-subtle md:flex"
       >
         <a href="#features" class="hover:text-vk-text-muted transition-colors">Features</a>
         <a href="#tour" class="hover:text-vk-text-muted transition-colors">Screenshots</a>
+        <a href="#filters" class="hover:text-vk-text-muted transition-colors">Filters</a>
         <a href="#models" class="hover:text-vk-text-muted transition-colors">Models</a>
         <a href="#community" class="hover:text-vk-text-muted transition-colors">Community</a>
       </nav>
@@ -123,19 +142,13 @@ const base = rawBase.endsWith('/') ? rawBase : `${rawBase}/`;
       >
       </div>
       <div class="relative z-10 mx-auto max-w-3xl">
-        <div
-          class="mb-5 inline-flex items-center gap-2 rounded-full border border-vk-border/10 bg-vk-surface-2/60 px-3 py-1 text-xs text-vk-text-muted"
-        >
-          <Icon name="cyan-dot" />
-          <span>AI Video Upscaling · Windows</span>
-        </div>
         <h1 class="text-4xl font-bold leading-[1.1] tracking-tight text-vk-text sm:text-5xl lg:text-[3rem]">
-          Upscale and restore video,<br />
+          Restore and upscale video,<br />
           <span class="font-normal text-vk-text-muted">beautifully.</span>
         </h1>
         <p class="mx-auto mt-5 max-w-xl text-base leading-relaxed text-vk-text-muted">
-          Free, open source video upscaling with AI models. Real-time preview,
-          side-by-side comparison, batch processing.
+          Free, open source video restoration for Windows. Real-time preview,
+          side-by-side comparison, batch processing, and AI support.
         </p>
         <div class="mt-8 flex flex-wrap justify-center gap-3">
           <a
@@ -150,7 +163,7 @@ const base = rawBase.endsWith('/') ? rawBase : `${rawBase}/`;
             href="https://github.com/Kim2091/vapourkit"
             target="_blank"
             rel="noopener"
-            class="flex items-center gap-2 rounded-lg border border-vk-border/12 px-6 py-2.5 text-sm text-vk-text transition-colors hover:border-vk-border/25"
+            class="flex items-center gap-2 rounded-lg border border-vk-border/15 px-6 py-2.5 text-sm text-vk-text transition-colors hover:border-vk-border/25"
           >
             <Icon name="github" size={16} />
             <span>View on GitHub</span>
@@ -158,7 +171,7 @@ const base = rawBase.endsWith('/') ? rawBase : `${rawBase}/`;
         </div>
 
         <!-- Hero screenshot -->
-        <div class="mx-auto mt-14 max-w-3xl rounded-xl border border-vk-border/8 bg-vk-surface-2 p-1.5">
+        <div class="mx-auto mt-14 max-w-3xl rounded-xl border border-vk-border/10 bg-vk-surface-2 p-1.5">
           <img
             src={`${base}pictures/Main Screen.png`}
             alt="Vapourkit main upscale view"
@@ -171,7 +184,7 @@ const base = rawBase.endsWith('/') ? rawBase : `${rawBase}/`;
     </section>
 
     <!-- Features -->
-    <section id="features" class="border-t border-vk-border/6 px-6 py-16">
+    <section id="features" class="border-t border-vk-border/8 px-6 py-16">
       <div class="mx-auto max-w-6xl">
         <div class="mb-9 text-center">
           <div
@@ -184,7 +197,7 @@ const base = rawBase.endsWith('/') ? rawBase : `${rawBase}/`;
           </h2>
         </div>
         <div
-          class="grid grid-cols-1 overflow-hidden rounded-xl border border-vk-border/6 bg-vk-border/6 gap-px sm:grid-cols-2 md:grid-cols-3"
+          class="grid grid-cols-1 overflow-hidden rounded-xl border border-vk-border/8 bg-vk-border/8 gap-px sm:grid-cols-2 md:grid-cols-3"
         >
           {
             features.map((f) => (
@@ -216,7 +229,7 @@ const base = rawBase.endsWith('/') ? rawBase : `${rawBase}/`;
         </div>
         <div class="space-y-6">
           <figure
-            class="overflow-hidden rounded-xl border border-vk-border/8 bg-vk-surface-2"
+            class="overflow-hidden rounded-xl border border-vk-border/10 bg-vk-surface-2"
           >
             <div class="aspect-[21/9]">
               <iframe
@@ -232,7 +245,7 @@ const base = rawBase.endsWith('/') ? rawBase : `${rawBase}/`;
             </figcaption>
           </figure>
           <figure
-            class="overflow-hidden rounded-xl border border-vk-border/8 bg-vk-surface-2"
+            class="overflow-hidden rounded-xl border border-vk-border/10 bg-vk-surface-2"
           >
             <div class="aspect-[21/9]">
               <iframe
@@ -252,7 +265,7 @@ const base = rawBase.endsWith('/') ? rawBase : `${rawBase}/`;
     </section>
 
     <!-- Tour -->
-    <section id="tour" class="border-t border-vk-border/6 px-6 py-16">
+    <section id="tour" class="border-t border-vk-border/8 px-6 py-16">
       <div class="mx-auto max-w-6xl">
         <div class="mb-7 text-center">
           <div
@@ -267,7 +280,7 @@ const base = rawBase.endsWith('/') ? rawBase : `${rawBase}/`;
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {
             screenshots.map((s) => (
-              <figure class="overflow-hidden rounded-lg border border-vk-border/8 bg-vk-surface-2">
+              <figure class="overflow-hidden rounded-lg border border-vk-border/10 bg-vk-surface-2">
                 <img
                   src={`${base}${s.src}`}
                   alt={s.caption}
@@ -285,8 +298,38 @@ const base = rawBase.endsWith('/') ? rawBase : `${rawBase}/`;
       </div>
     </section>
 
+    <!-- Filters -->
+    <section id="filters" class="border-t border-vk-border/8 px-6 py-16">
+      <div class="mx-auto max-w-6xl">
+        <div class="mb-7 text-center">
+          <div
+            class="mb-1.5 text-[11px] uppercase tracking-[0.1em] text-vk-text-subtle"
+          >
+            Filters
+          </div>
+          <h2 class="text-2xl font-semibold text-vk-text sm:text-[1.625rem]">
+            Bundled filters, or write your own.
+          </h2>
+        </div>
+        <div class="flex flex-wrap justify-center gap-2">
+          {
+            filters.map((f) => (
+              <div class="rounded-md border border-vk-border/10 bg-vk-surface-2 px-4 py-2 text-sm text-vk-text">
+                {f.name}
+              </div>
+            ))
+          }
+          <div
+            class="rounded-md border border-dashed border-vk-border/15 px-4 py-2 text-sm text-vk-text-muted"
+          >
+            + Custom filters
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- Models -->
-    <section id="models" class="border-t border-vk-border/6 px-6 py-16">
+    <section id="models" class="border-t border-vk-border/8 px-6 py-16">
       <div class="mx-auto max-w-6xl">
         <div class="mb-7 text-center">
           <div
@@ -319,7 +362,7 @@ const base = rawBase.endsWith('/') ? rawBase : `${rawBase}/`;
     </section>
 
     <!-- System requirements -->
-    <section class="border-t border-vk-border/6 px-6 py-16">
+    <section class="border-t border-vk-border/8 px-6 py-16">
       <div class="mx-auto max-w-6xl">
         <div class="mb-7 text-center">
           <div
@@ -332,7 +375,7 @@ const base = rawBase.endsWith('/') ? rawBase : `${rawBase}/`;
           </h2>
         </div>
         <div
-          class="mx-auto max-w-xl rounded-xl border border-vk-border/8 bg-vk-surface-2 p-7 text-sm text-vk-text-muted"
+          class="mx-auto max-w-xl rounded-xl border border-vk-border/10 bg-vk-surface-2 p-7 text-sm text-vk-text-muted"
         >
           {
             sysreqs.map((r, i) => (
@@ -348,65 +391,64 @@ const base = rawBase.endsWith('/') ? rawBase : `${rawBase}/`;
       </div>
     </section>
 
-    <!-- Community / Discord -->
-    <section id="community" class="border-t border-vk-border/6 px-6 py-16 text-center">
-      <div
-        class="mb-1.5 text-[11px] uppercase tracking-[0.1em] text-vk-text-subtle"
-      >
-        Community
+    <!-- Community + Support -->
+    <section id="community" class="border-t border-vk-border/8 px-6 py-16">
+      <div class="mx-auto grid max-w-6xl grid-cols-1 gap-12 md:grid-cols-2 md:gap-0 md:divide-x md:divide-vk-border/8">
+        <div class="text-center md:px-8">
+          <div
+            class="mb-1.5 text-[11px] uppercase tracking-[0.1em] text-vk-text-subtle"
+          >
+            Community
+          </div>
+          <h2 class="text-2xl font-semibold text-vk-text sm:text-[1.625rem]">
+            Join the Discord.
+          </h2>
+          <p class="mx-auto mt-3 max-w-md text-sm text-vk-text-muted">
+            Share your results, find workflow files shared by others, get help, or request features!
+          </p>
+          <a
+            href="https://discord.gg/uYKMn2hGwB"
+            target="_blank"
+            rel="noopener"
+            class="mt-6 inline-flex items-center gap-2 rounded-lg border border-indigo-500/40 bg-vk-surface-2 px-6 py-2.5 text-sm font-medium text-vk-text transition-colors hover:border-indigo-500/70"
+          >
+            <Icon name="discord" size={16} />
+            <span>Join Discord</span>
+          </a>
+        </div>
+        <div class="text-center md:px-8">
+          <div
+            class="mb-1.5 text-[11px] uppercase tracking-[0.1em] text-vk-text-subtle"
+          >
+            Support
+          </div>
+          <h2 class="text-2xl font-semibold text-vk-text sm:text-[1.625rem]">
+            Vapourkit is free. Tips help.
+          </h2>
+          <p class="mx-auto mt-3 max-w-md text-sm text-vk-text-muted">
+            Donations support my work and help fund development!
+          </p>
+          <a
+            href="https://ko-fi.com/kim20913944"
+            target="_blank"
+            rel="noopener"
+            class="mt-6 inline-flex items-center gap-2 rounded-lg border border-pink-500/40 px-6 py-2.5 text-sm font-medium text-pink-500 transition-colors hover:border-pink-500/70 dark:text-pink-300"
+          >
+            <Icon name="coffee" size={14} />
+            <span>Ko-fi</span>
+          </a>
+        </div>
       </div>
-      <h2 class="text-2xl font-semibold text-vk-text sm:text-[1.625rem]">
-        Join the Discord.
-      </h2>
-      <p class="mx-auto mt-3 max-w-md text-sm text-vk-text-muted">
-        Share your results, find workflow files shared by others, get help, or request features!
-      </p>
-      <a
-        href="https://discord.gg/uYKMn2hGwB"
-        target="_blank"
-        rel="noopener"
-        class="mt-6 inline-flex items-center gap-2 rounded-lg border border-indigo-500/40 bg-vk-surface-2 px-6 py-2.5 text-sm font-medium text-vk-text transition-colors hover:border-indigo-500/70"
-      >
-        <Icon name="discord" size={16} />
-        <span>Join Discord</span>
-      </a>
-    </section>
-
-    <!-- Support / Ko-fi -->
-    <section class="border-t border-vk-border/6 px-6 py-12 text-center">
-      <div
-        class="mb-1.5 text-[11px] uppercase tracking-[0.1em] text-vk-text-subtle"
-      >
-        Support
-      </div>
-      <h2 class="text-xl font-semibold text-vk-text">Vapourkit is free. Tips help.</h2>
-      <p class="mx-auto mt-2 max-w-md text-sm text-vk-text-muted">
-        Donations support my work and help fund development!
-      </p>
-      <a
-        href="https://ko-fi.com/kim20913944"
-        target="_blank"
-        rel="noopener"
-        class="mt-4 inline-flex items-center gap-2 rounded-lg border border-pink-500/40 px-5 py-2 text-sm text-pink-500 transition-colors hover:border-pink-500/70 dark:text-pink-300"
-      >
-        <Icon name="coffee" size={14} />
-        <span>Ko-fi</span>
-      </a>
     </section>
 
     <!-- Credits footer -->
     <footer
-      class="border-t border-vk-border/6 px-6 py-7 text-center text-[11px] text-vk-text-subtle"
+      class="border-t border-vk-border/8 px-6 py-7 text-center text-[11px] text-vk-text-subtle"
     >
-      VapourSynth · vs-mlrt · pifroggi · Sirosky · the-database · vs-jetpack · beta testers — GPL 3.0
+      Copyright © Kim2091
     </footer>
   </main>
 
-  <!-- Toggle the moon/sun visibility based on theme -->
-  <style>
-    [data-theme="dark"] [data-theme-show="light"] { display: none; }
-    [data-theme="dark"] [data-theme-show="dark"] { display: inline-flex; }
-    [data-theme="light"] [data-theme-show="light"] { display: inline-flex; }
-    [data-theme="light"] [data-theme-show="dark"] { display: none; }
-  </style>
+  <FloatingToggle />
+
 </Layout>

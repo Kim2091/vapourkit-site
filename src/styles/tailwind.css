@@ -77,6 +77,11 @@
 }
 
 @layer utilities {
+  [data-theme="dark"] [data-theme-show="light"] { display: none; }
+  [data-theme="dark"] [data-theme-show="dark"] { display: inline-flex; }
+  [data-theme="light"] [data-theme-show="light"] { display: inline-flex; }
+  [data-theme="light"] [data-theme-show="dark"] { display: none; }
+
   .text-gradient-brand {
     background: linear-gradient(135deg, #2298ff 0%, #8b5cf6 50%, #de7cff 100%);
     -webkit-background-clip: text;

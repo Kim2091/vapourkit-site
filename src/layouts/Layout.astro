@@ -7,8 +7,8 @@ interface Props {
 }
 
 const {
-  title = 'Vapourkit — AI Video Upscaling for Windows',
-  description = 'Free, open source video upscaling with AI models. Real-time preview, side-by-side comparison, batch processing.',
+  title = 'Vapourkit — Video Restoration for Windows',
+  description = 'Free, open source video restoration for Windows. Real-time preview, side-by-side comparison, batch processing, and AI support.',
 } = Astro.props;
 
 const rawBase = import.meta.env.BASE_URL;
@@ -46,23 +46,5 @@ const base = rawBase.endsWith('/') ? rawBase : `${rawBase}/`;
   </head>
   <body class="bg-vk-bg text-vk-text antialiased">
     <slot />
-    <script is:inline>
-      // Theme toggle wiring for the landing page nav. Writes to the same
-      // localStorage key Starlight reads.
-      (() => {
-        const btn = document.getElementById('vk-theme-toggle');
-        if (!btn) return;
-        const root = document.documentElement;
-        const apply = (theme) => {
-          root.dataset.theme = theme;
-          localStorage.setItem('starlight-theme', theme);
-          btn.setAttribute('aria-label', theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode');
-        };
-        apply(root.dataset.theme || 'light');
-        btn.addEventListener('click', () => {
-          apply(root.dataset.theme === 'dark' ? 'light' : 'dark');
-        });
-      })();
-    </script>
   </body>
 </html>
