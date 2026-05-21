@@ -3,9 +3,7 @@ import starlight from '@astrojs/starlight';
 import tailwind from '@astrojs/tailwind';
 
 export default defineConfig({
-  // When a custom vapourkit domain is set up, change `site` to it and drop `base`.
-  site: 'https://kim2091.github.io',
-  base: '/vapourkit-site',
+  site: 'https://www.vapourkit.app',
   integrations: [
     starlight({
       title: 'Vapourkit Docs',
