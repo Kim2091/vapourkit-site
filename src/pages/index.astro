@@ -78,9 +78,9 @@ const base = rawBase.endsWith('/') ? rawBase : `${rawBase}/`;
           <img src={`${base}favicon.svg`} alt="" class="h-6 w-6" />
           <strong class="text-sm">Vapourkit</strong>
         </a>
-        <nav class="hidden items-center gap-6 text-sm text-vk-text-muted md:flex">
+        <nav class="flex items-center gap-3 text-sm text-vk-text-muted md:gap-6">
           <a href={`${base}introduction/`} class="hover:text-vk-text transition-colors">Docs</a>
-          <a href={`${base}reference/troubleshooting/`} class="hover:text-vk-text transition-colors">FAQ</a>
+          <a href={`${base}reference/troubleshooting/`} class="hidden hover:text-vk-text transition-colors md:inline">FAQ</a>
           <div class="flex items-center gap-2">
             <a
               href="https://github.com/Kim2091/vapourkit"
@@ -114,7 +114,7 @@ const base = rawBase.endsWith('/') ? rawBase : `${rawBase}/`;
             href="https://ko-fi.com/s/2e5ebd456d"
             target="_blank"
             rel="noopener"
-            class="rounded-md border border-vk-brand-purple/35 bg-vk-elevated px-3.5 py-1.5 font-medium text-vk-text transition-colors hover:border-vk-brand-purple/65"
+            class="hidden rounded-md border border-vk-brand-purple/35 bg-vk-elevated px-3.5 py-1.5 font-medium text-vk-text transition-colors hover:border-vk-brand-purple/65 md:inline-block"
           >
             Download
           </a>
@@ -122,7 +122,7 @@ const base = rawBase.endsWith('/') ? rawBase : `${rawBase}/`;
       </div>
       <!-- Subheader: in-page anchors -->
       <nav
-        class="hidden h-9 items-center justify-center gap-7 border-t border-vk-border/8 text-[11px] uppercase tracking-[0.08em] text-vk-text-subtle md:flex"
+        class="flex h-9 items-center justify-start gap-7 overflow-x-auto whitespace-nowrap border-t border-vk-border/8 text-[11px] uppercase tracking-[0.08em] text-vk-text-subtle [-ms-overflow-style:none] [scrollbar-width:none] md:justify-center md:overflow-x-visible [&::-webkit-scrollbar]:hidden"
       >
         <a href="#features" class="hover:text-vk-text-muted transition-colors">Features</a>
         <a href="#tour" class="hover:text-vk-text-muted transition-colors">Screenshots</a>
