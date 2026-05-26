@@ -30,10 +30,14 @@ function findRepoPath(): string {
   if (fromEnv && existsSync(fromEnv)) return resolve(fromEnv);
 
   const sibling = resolve(siteRoot, '..', 'vapourkit');
-  if (existsSync(sibling) && existsSync(join(sibling, 'package.json'))) return sibling;
+  const filterDir = join(sibling, 'include', 'plugins', 'plugin_filters');
+  if (existsSync(sibling) && existsSync(filterDir)) return sibling;
 
   throw new Error(
-    'Vapourkit repo not found. Set VAPOURKIT_REPO_PATH or place the vapourkit repo as a sibling directory.',
+    'Vapourkit repo not found.\n' +
+    `  Tried VAPOURKIT_REPO_PATH=${fromEnv ?? '(not set)'}\n` +
+    `  Tried sibling=${sibling}\n` +
+    'Set VAPOURKIT_REPO_PATH or place the vapourkit repo as a sibling directory.',
   );
 }
 
@@ -49,20 +53,29 @@ function normalizeCategories(raw: unknown): string[] {
 function readVkFilters(dir: string, source: 'plugin' | 'template'): VkFilter[] {
   if (!existsSync(dir) || !statSync(dir).isDirectory()) return [];
 
-  const entries = readdirSync(dir).filter((f) => f.endsWith('.vkfilter'));
-  return entries.map((file) => {
-    const fullPath = join(dir, file);
-    const text = readFileSync(fullPath, 'utf-8');
-    const parsed = TOML.parse(text) as Record<string, unknown>;
-    return {
-      name: String(parsed.name ?? file.replace(/\.vkfilter$/, '')),
-      categories: normalizeCategories(parsed.category),
-      description: String(parsed.description ?? '').trim(),
-      code: String(parsed.code ?? '').trim(),
-      source,
-      file,
-    };
-  });
+  const entries = readdirSync(dir).filter((f) => f.endsWith('.vkfilter')).sort();
+  const results: VkFilter[] = [];
+
+  for (const file of entries) {
+    try {
+      const fullPath = join(dir, file);
+      const text = readFileSync(fullPath, 'utf-8');
+      const parsed = TOML.parse(text) as Record<string, unknown>;
+      results.push({
+        name: String(parsed.name ?? file.replace(/\.vkfilter$/, '')),
+        categories: normalizeCategories(parsed.category),
+        description: String(parsed.description ?? '').trim(),
+        code: String(parsed.code ?? '').trim(),
+        source,
+        file,
+      });
+    } catch (err) {
+      const fullPath = join(dir, file);
+      console.error(`[gen:filters] skipping ${fullPath}: ${err instanceof Error ? err.message : err}`);
+    }
+  }
+
+  return results;
 }
 
 function groupByCategory(filters: VkFilter[]): Map<string, VkFilter[]> {
@@ -80,31 +93,29 @@ function groupByCategory(filters: VkFilter[]): Map<string, VkFilter[]> {
   return new Map([...groups.entries()].sort(([a], [b]) => a.localeCompare(b)));
 }
 
-function escapeForMarkdown(s: string): string {
+function escapeMD(s: string): string {
   return s.replace(/\|/g, '\\|');
 }
 
 function renderFilter(filter: VkFilter): string {
   const tag = filter.source === 'template' ? '_(bundled template)_' : '';
-  const desc = filter.description
-    ? `\n${escapeForMarkdown(filter.description)}\n`
-    : '\n';
+  const desc = filter.description ? `\n${escapeMD(filter.description)}\n` : '\n';
   const codeBlock = filter.code
     ? `\n<details>\n<summary>Show code</summary>\n\n\`\`\`python\n${filter.code}\n\`\`\`\n\n</details>\n`
     : '';
-  return `### ${filter.name} ${tag}\n${desc}${codeBlock}`;
+  return `### ${escapeMD(filter.name)} ${tag}\n${desc}${codeBlock}`;
 }
 
 function buildMarkdown(groups: Map<string, VkFilter[]>, total: number): string {
   const tocEntries: string[] = [];
   for (const category of groups.keys()) {
     const anchor = category.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-    tocEntries.push(`- [${category}](#${anchor})`);
+    tocEntries.push(`- [${escapeMD(category)}](#${anchor})`);
   }
 
   const body: string[] = [];
   for (const [category, list] of groups.entries()) {
-    body.push(`## ${category}\n`);
+    body.push(`## ${escapeMD(category)}\n`);
     for (const f of list) body.push(renderFilter(f));
     body.push('');
   }
@@ -155,4 +166,9 @@ function main(): void {
   );
 }
 
-main();
+try {
+  main();
+} catch (err) {
+  console.error(`[gen:filters] FATAL: ${err instanceof Error ? err.message : err}`);
+  process.exit(1);
+}

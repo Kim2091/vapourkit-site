@@ -1,18 +1,21 @@
 ---
 import '../styles/tailwind.css';
+import { base } from '../lib/base';
 
 interface Props {
   title?: string;
   description?: string;
+  grain?: boolean;
 }
 
 const {
   title = 'Vapourkit — Video Restoration for Windows',
   description = 'Free, open source video restoration for Windows. Real-time preview, side-by-side comparison, batch processing, and AI support.',
+  grain = false,
 } = Astro.props;
 
-const rawBase = import.meta.env.BASE_URL;
-const base = rawBase.endsWith('/') ? rawBase : `${rawBase}/`;
+const site = Astro.site?.toString() || Astro.url.origin;
+const ogImageUrl = new URL(`${base}og.jpg`, site).href;
 ---
 
 <!doctype html>
@@ -27,7 +30,11 @@ const base = rawBase.endsWith('/') ? rawBase : `${rawBase}/`;
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />
+    <meta property="og:image" content={ogImageUrl} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content={ogImageUrl} />
     <title>{title}</title>
     <script is:inline>
       // Dark mode is the default. Respect the user's stored preference (which
@@ -38,13 +45,17 @@ const base = rawBase.endsWith('/') ? rawBase : `${rawBase}/`;
         try { stored = localStorage.getItem('starlight-theme'); } catch (_) {}
         const theme = stored === 'light' || stored === 'dark' ? stored : 'dark';
         document.documentElement.dataset.theme = theme;
+        document.documentElement.classList.add('js');
         if (!stored) {
           try { localStorage.setItem('starlight-theme', 'dark'); } catch (_) {}
         }
       })();
     </script>
   </head>
-  <body class="bg-vk-bg text-vk-text antialiased">
+  <body class={`bg-vk-bg text-vk-text antialiased${grain ? ' has-grain' : ''}`}>
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-md focus:border focus:border-vk-border/10 focus:bg-vk-elevated focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-vk-text">
+      Skip to content
+    </a>
     <slot />
   </body>
 </html>

@@ -1,6 +1,6 @@
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
-import tailwind from '@astrojs/tailwind';
+import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
   site: 'https://www.vapourkit.app',
@@ -15,10 +15,10 @@ export default defineConfig({
       logo: {
         src: './src/assets/icon.svg',
       },
-      social: {
-        github: 'https://github.com/Kim2091/vapourkit',
-        discord: 'https://discord.gg/uYKMn2hGwB',
-      },
+      social: [
+        { icon: 'github', label: 'GitHub', href: 'https://github.com/Kim2091/vapourkit' },
+        { icon: 'discord', label: 'Discord', href: 'https://discord.gg/uYKMn2hGwB' },
+      ],
       editLink: {
         baseUrl: 'https://github.com/Kim2091/vapourkit-site/edit/main/',
       },
@@ -90,6 +90,8 @@ export default defineConfig({
         },
       ],
     }),
-    tailwind({ applyBaseStyles: false }),
   ],
+  vite: {
+    plugins: [tailwindcss()],
+  },
 });

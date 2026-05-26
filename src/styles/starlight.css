@@ -34,8 +34,6 @@ starlight-theme-select {
   --sl-color-hairline-light: rgba(255, 255, 255, 0.06);
   --sl-color-hairline: rgba(255, 255, 255, 0.08);
   --sl-color-hairline-shade: rgba(255, 255, 255, 0.12);
-
-  --sl-font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
 }
 
 :root,
@@ -66,6 +64,36 @@ starlight-theme-select {
   --sl-color-hairline-light: rgba(0, 0, 0, 0.06);
   --sl-color-hairline: rgba(0, 0, 0, 0.08);
   --sl-color-hairline-shade: rgba(0, 0, 0, 0.12);
+}
 
+:root {
   --sl-font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
+}
+
+/* Safety net: ensure grain/vignette pseudo-elements never render on Starlight pages.
+   The landing page explicitly adds .has-grain to body; Starlight does not. */
+body:not(.has-grain)::before,
+body:not(.has-grain)::after {
+  display: none !important;
+}
+
+/* Flatten Starlight's mobile menu button to match site aesthetic.
+   Overrides the circular background, shadow, and jarring color inversion on click. */
+starlight-menu-button button {
+  padding: 0.5rem !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border-radius: 0.5rem !important;
+  color: var(--sl-color-text) !important;
+  transition: background 0.2s ease !important;
+}
+
+starlight-menu-button button:hover,
+starlight-menu-button [aria-expanded='true'] button {
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-theme='light'] starlight-menu-button button:hover,
+[data-theme='light'] starlight-menu-button [aria-expanded='true'] button {
+  background: rgba(0, 0, 0, 0.08) !important;
 }

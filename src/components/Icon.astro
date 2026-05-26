@@ -16,7 +16,8 @@ interface Props {
     | 'coffee'
     | 'sun'
     | 'moon'
-    | 'cyan-dot';
+    | 'cyan-dot'
+    | 'expand';
   size?: number;
   class?: string;
   stroke?: string;
@@ -28,6 +29,7 @@ const { name, size = 16, class: className = '', stroke = 'currentColor' } = Astr
 {
   name === 'chip' && (
     <svg
+      aria-hidden="true"
       width={size}
       height={size}
       viewBox="0 0 24 24"
@@ -47,6 +49,7 @@ const { name, size = 16, class: className = '', stroke = 'currentColor' } = Astr
 {
   name === 'eye' && (
     <svg
+      aria-hidden="true"
       width={size}
       height={size}
       viewBox="0 0 24 24"
@@ -65,6 +68,7 @@ const { name, size = 16, class: className = '', stroke = 'currentColor' } = Astr
 {
   name === 'split' && (
     <svg
+      aria-hidden="true"
       width={size}
       height={size}
       viewBox="0 0 24 24"
@@ -83,6 +87,7 @@ const { name, size = 16, class: className = '', stroke = 'currentColor' } = Astr
 {
   name === 'grid' && (
     <svg
+      aria-hidden="true"
       width={size}
       height={size}
       viewBox="0 0 24 24"
@@ -103,6 +108,7 @@ const { name, size = 16, class: className = '', stroke = 'currentColor' } = Astr
 {
   name === 'code' && (
     <svg
+      aria-hidden="true"
       width={size}
       height={size}
       viewBox="0 0 24 24"
@@ -121,6 +127,7 @@ const { name, size = 16, class: className = '', stroke = 'currentColor' } = Astr
 {
   name === 'save' && (
     <svg
+      aria-hidden="true"
       width={size}
       height={size}
       viewBox="0 0 24 24"
@@ -140,6 +147,7 @@ const { name, size = 16, class: className = '', stroke = 'currentColor' } = Astr
 {
   name === 'github' && (
     <svg
+      aria-hidden="true"
       width={size}
       height={size}
       viewBox="0 0 24 24"
@@ -153,6 +161,7 @@ const { name, size = 16, class: className = '', stroke = 'currentColor' } = Astr
 {
   name === 'discord' && (
     <svg
+      aria-hidden="true"
       width={size}
       height={size}
       viewBox="0 0 24 24"
@@ -166,6 +175,7 @@ const { name, size = 16, class: className = '', stroke = 'currentColor' } = Astr
 {
   name === 'download' && (
     <svg
+      aria-hidden="true"
       width={size}
       height={size}
       viewBox="0 0 24 24"
@@ -185,6 +195,7 @@ const { name, size = 16, class: className = '', stroke = 'currentColor' } = Astr
 {
   name === 'arrow-right' && (
     <svg
+      aria-hidden="true"
       width={size}
       height={size}
       viewBox="0 0 24 24"
@@ -203,6 +214,7 @@ const { name, size = 16, class: className = '', stroke = 'currentColor' } = Astr
 {
   name === 'arrow-up' && (
     <svg
+      aria-hidden="true"
       width={size}
       height={size}
       viewBox="0 0 24 24"
@@ -221,6 +233,7 @@ const { name, size = 16, class: className = '', stroke = 'currentColor' } = Astr
 {
   name === 'arrow-down' && (
     <svg
+      aria-hidden="true"
       width={size}
       height={size}
       viewBox="0 0 24 24"
@@ -239,6 +252,7 @@ const { name, size = 16, class: className = '', stroke = 'currentColor' } = Astr
 {
   name === 'coffee' && (
     <svg
+      aria-hidden="true"
       width={size}
       height={size}
       viewBox="0 0 24 24"
@@ -260,6 +274,7 @@ const { name, size = 16, class: className = '', stroke = 'currentColor' } = Astr
 {
   name === 'sun' && (
     <svg
+      aria-hidden="true"
       width={size}
       height={size}
       viewBox="0 0 24 24"
@@ -278,6 +293,7 @@ const { name, size = 16, class: className = '', stroke = 'currentColor' } = Astr
 {
   name === 'moon' && (
     <svg
+      aria-hidden="true"
       width={size}
       height={size}
       viewBox="0 0 24 24"
@@ -295,7 +311,26 @@ const { name, size = 16, class: className = '', stroke = 'currentColor' } = Astr
 {
   name === 'cyan-dot' && (
     <span
-      class={`inline-block h-1.5 w-1.5 rounded-full bg-vk-brand-cyan-soft ${className}`}
+      aria-hidden="true"
+      class={`inline-block h-1.5 w-1.5 rounded-full bg-vk-brand-blue ${className}`}
     />
+  )
+}
+{
+  name === 'expand' && (
+    <svg
+      aria-hidden="true"
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={stroke}
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      class={className}
+    >
+      <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+    </svg>
   )
 }

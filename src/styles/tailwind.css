@@ -1,42 +1,83 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-/* Theme tokens — defined as RGB triplets so Tailwind's `/<alpha>` modifier works.
-   Light is default; data-theme="dark" flips them. */
+@theme {
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'system-ui', sans-serif;
+  --font-display: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'system-ui', sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  --color-vk-bg: rgb(var(--vk-bg));
+  --color-vk-surface-2: rgb(var(--vk-surface-2));
+  --color-vk-elevated: rgb(var(--vk-elevated));
+  --color-vk-text: rgb(var(--vk-text));
+  --color-vk-text-muted: rgb(var(--vk-text-muted));
+  --color-vk-text-subtle: rgb(var(--vk-text-subtle));
+  --color-vk-border: rgb(var(--vk-border));
+  --color-vk-accent: rgb(var(--vk-accent));
+  --color-vk-brand-purple: #8b5cf6;
+  --color-vk-brand-purple-soft: #a78bfa;
+  --color-vk-brand-blue: #2298ff;
+}
+
+/* Theme tokens — defined as RGB triplets so Tailwind's `/<alpha>` modifier works. */
 :root,
 :root[data-theme="light"] {
-  --vk-bg: 250 250 251;
-  --vk-surface: 255 255 255;
-  --vk-surface-2: 243 244 246;
-  --vk-elevated: 229 231 235;
-  --vk-text: 17 24 39;
-  --vk-text-muted: 55 65 81;
-  --vk-text-subtle: 107 114 128;
-  --vk-border: 0 0 0;
-  --vk-border-strong: 0 0 0;
-  --vk-border-alpha: 0.08;
-  --vk-border-strong-alpha: 0.14;
-  --vk-hero-glow-1: rgba(139, 92, 246, 0.12);
-  --vk-hero-glow-2: rgba(59, 130, 246, 0.08);
+  --vk-bg: 250 248 244;
+  --vk-surface-2: 243 241 236;
+  --vk-elevated: 233 230 224;
+  --vk-text: 28 26 22;
+  --vk-text-muted: 90 85 75;
+  --vk-text-subtle: 110 105 95;
+  --vk-border: 28 26 22;
+  --vk-hero-glow-1: rgba(139, 92, 246, 0.18);
+  --vk-hero-glow-2: rgba(34, 152, 255, 0.14);
+  --vk-accent: 109 40 217;
   color-scheme: light;
 }
 
 :root[data-theme="dark"] {
   --vk-bg: 21 23 30;
-  --vk-surface: 27 30 38;
   --vk-surface-2: 23 25 32;
   --vk-elevated: 33 36 45;
-  --vk-text: 243 244 246;
-  --vk-text-muted: 209 213 219;
-  --vk-text-subtle: 156 163 175;
-  --vk-border: 255 255 255;
-  --vk-border-strong: 255 255 255;
-  --vk-border-alpha: 0.08;
-  --vk-border-strong-alpha: 0.14;
-  --vk-hero-glow-1: rgba(139, 92, 246, 0.18);
-  --vk-hero-glow-2: rgba(59, 130, 246, 0.12);
+  --vk-text: 244 241 234;
+  --vk-text-muted: 154 149 138;
+  --vk-text-subtle: 107 103 95;
+  --vk-border: 244 241 234;
+  --vk-hero-glow-1: rgba(139, 92, 246, 0.12);
+  --vk-hero-glow-2: rgba(34, 152, 255, 0.08);
+  --vk-accent: 139 92 246;
   color-scheme: dark;
+}
+
+/* Film grain overlay — subtle texture for atmosphere (landing page only) */
+body.has-grain::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.4'/%3E%3C/svg%3E");
+  opacity: 0;
+  pointer-events: none;
+  z-index: 0;
+  transition: opacity 0.6s ease;
+}
+
+:root[data-theme="dark"] body.has-grain::before {
+  opacity: 0.04;
+}
+
+/* Vignette — subtle darkening at edges (landing page only) */
+body.has-grain::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+  background: radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, 0.35) 100%);
+}
+
+:root[data-theme="dark"] body.has-grain::after {
+  opacity: 1;
 }
 
 /* Targeted preflight: starlight-tailwind disables full Preflight, so we add
@@ -74,6 +115,10 @@
   p {
     margin: 0;
   }
+  :focus-visible {
+    outline: 2px solid rgb(var(--vk-accent));
+    outline-offset: 2px;
+  }
 }
 
 @layer utilities {
@@ -82,14 +127,96 @@
   [data-theme="light"] [data-theme-show="light"] { display: inline-flex; }
   [data-theme="light"] [data-theme-show="dark"] { display: none; }
 
-  .text-gradient-brand {
-    background: linear-gradient(135deg, #2298ff 0%, #8b5cf6 50%, #de7cff 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+  .section-overline {
+    @apply mb-2 text-[11px] tracking-[0.12em] text-vk-accent;
   }
 
-  .bg-icon-mark {
-    background: linear-gradient(135deg, #2298ff 30%, #8b5cf6 70%, #de7cff 100%);
+  .hero-glow {
+    background: radial-gradient(ellipse 80% 60% at 15% 20%, var(--vk-hero-glow-1), transparent 50%), radial-gradient(ellipse 50% 40% at 85% 80%, var(--vk-hero-glow-2), transparent 60%);
+  }
+}
+
+/* Animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes floatSimple {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.7s ease forwards;
+  opacity: 0;
+}
+
+.animate-float-simple {
+  animation: floatSimple 6s ease-in-out infinite;
+}
+
+.delay-200 { animation-delay: 0.2s; }
+.delay-400 { animation-delay: 0.4s; }
+.delay-500 { animation-delay: 0.5s; }
+.delay-700 { animation-delay: 0.7s; }
+
+/* Section reveal on scroll */
+.js .reveal {
+  opacity: 0;
+  transform: translateY(32px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+
+.js .reveal.revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Smooth-scroll offset for sticky header */
+#features,
+#tour,
+#filters,
+#models,
+#community {
+  scroll-margin-top: 4.5rem;
+}
+
+/* Section nav active indicator (desktop header + mobile subheader) */
+.section-link.active {
+  color: rgb(var(--vk-accent));
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .animate-fade-in-up,
+  .animate-float-simple {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+  .js .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
   }
 }

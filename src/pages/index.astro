@@ -2,56 +2,47 @@
 import Layout from '../layouts/Layout.astro';
 import Icon from '../components/Icon.astro';
 import FloatingToggle from '../components/FloatingToggle.astro';
+import ComparisonSlider from '../components/ComparisonSlider.astro';
+import Lightbox from '../components/Lightbox.astro';
+import SectionHeading from '../components/SectionHeading.astro';
+import { base } from '../lib/base';
 
 const features = [
   {
     icon: 'chip',
     title: 'Dual backends',
-    desc: 'TensorRT (NVIDIA) or DirectML (AMD/Intel/NV).',
+    desc: 'TensorRT (NVIDIA) or DirectML (AMD, Intel, NV). Switch at runtime.',
   },
   {
     icon: 'eye',
     title: 'Real-time preview',
-    desc: 'See results as they process.',
+    desc: 'See results as they process. Tweak filters and watch the output update instantly.',
   },
   {
     icon: 'split',
     title: 'Compare viewer',
-    desc: 'Built-in side-by-side video comparison.',
+    desc: 'Built-in side-by-side video comparison. Drag the slider to see your restoration against the original.',
   },
   {
     icon: 'grid',
     title: 'Batch processing',
-    desc: 'Queue multiple videos with workflows.',
+    desc: 'Queue multiple videos with custom workflows. Walk away and come back to finished results.',
   },
   {
     icon: 'code',
     title: 'Custom filters',
-    desc: 'Write your own, or install any VapourSynth script/plugin.',
+    desc: 'Write your own filters, or install any VapourSynth script or plugin from the community.',
   },
   {
     icon: 'save',
     title: 'Templates & workflows',
-    desc: 'Save and share .vkfilter and .vkworkflow files.',
+    desc: 'Save and share .vkfilter and .vkworkflow files. Portable, versionable, reproducible.'
   },
 ];
 
 const screenshots = [
   { caption: 'Batch processor', src: 'pictures/Batch View.png' },
   { caption: 'Filter panel', src: 'pictures/Filter Panel.png' },
-];
-
-const models = [
-  { name: 'TFDAT', tag: 'VSR' },
-  { name: 'AnimeSharpV4' },
-  { name: 'UltraSharpV2' },
-];
-
-const filters = [
-  { name: 'vs-jetpack' },
-  { name: 'TemporalFix' },
-  { name: 'QTGMC' },
-  { name: 'RIFE' },
 ];
 
 const sysreqs = [
@@ -62,11 +53,29 @@ const sysreqs = [
   { label: 'VRAM', value: '6 GB +' },
 ];
 
-const rawBase = import.meta.env.BASE_URL;
-const base = rawBase.endsWith('/') ? rawBase : `${rawBase}/`;
+const videos = [
+  { src: 'https://www.youtube-nocookie.com/embed/bQ4f-w2gub0?rel=0', title: 'SpongeBob Season 1 remaster', caption: 'SpongeBob Season 1 remaster' },
+  { src: 'https://www.youtube-nocookie.com/embed/dPt9NtzQ_04?rel=0', title: 'VHS Restoration Sample', caption: 'VHS Restoration Sample' },
+];
+
+const filterCategories = [
+  { name: 'Deinterlacing', filters: ['QTGMC', 'BWDIF'] },
+  { name: 'Frame Interpolation', filters: ['RIFE'] },
+  { name: 'Restoration', filters: ['TemporalFix', 'Remove Dirt MC'] },
+  { name: 'Denoising', filters: ['DFTTest2', 'KNLMeans'] },
+  { name: 'Sharpening', filters: ['CAS Sharpen', 'LSFmod'] },
+  { name: 'Anti-Aliasing', filters: ['DAA', 'SangNom'] },
+  { name: 'Dehalo', filters: ['HQDering', 'FineDehalo'] },
+  { name: 'Debanding', filters: ['GradFun3', 'f3kdb'] },
+];
+
+const socialLinkClass = 'inline-flex h-8 w-8 items-center justify-center rounded-md border border-vk-border/10 text-vk-text-muted transition-colors hover:border-vk-border/20 hover:text-vk-text';
+const chipClass = 'inline-flex rounded-lg border border-vk-border/5 bg-vk-bg px-4 py-2 text-sm text-vk-text transition-colors hover:border-vk-accent/20';
+const ctaPrimaryClass = 'inline-flex items-center gap-2 rounded-lg border border-vk-accent/25 px-5 py-2 text-sm text-vk-text transition-colors hover:border-vk-accent/50 hover:bg-vk-accent/5';
+const ctaSecondaryClass = 'inline-flex items-center gap-2 rounded-lg border border-vk-border/10 px-5 py-2 text-sm text-vk-text-muted transition-colors hover:border-vk-border/20 hover:text-vk-text';
 ---
 
-<Layout>
+<Layout grain>
   <!-- Top nav -->
   <header
     class="sticky top-0 z-40 border-b border-vk-border/10 bg-vk-bg/75 backdrop-blur-md"
@@ -74,96 +83,86 @@ const base = rawBase.endsWith('/') ? rawBase : `${rawBase}/`;
     <div class="mx-auto max-w-6xl px-6">
       <!-- Main row: real destinations -->
       <div class="flex items-center justify-between py-3.5">
-        <a href={base} class="flex items-center gap-2.5">
-          <img src={`${base}favicon.svg`} alt="" class="h-6 w-6" />
-          <strong class="text-sm">Vapourkit</strong>
-        </a>
+        <div class="flex items-center gap-8">
+          <a href={base} class="flex items-center gap-2.5">
+            <img src={`${base}favicon.svg`} alt="" class="h-6 w-6" />
+            <strong class="font-display text-lg font-normal tracking-tight">Vapourkit</strong>
+          </a>
+          <nav class="hidden md:flex items-center gap-6 text-sm text-vk-text-muted">
+            <a href="#features" class="section-link hover:text-vk-text transition-colors">Features</a>
+            <a href="#tour" class="section-link hover:text-vk-text transition-colors">Screenshots</a>
+            <a href="#filters" class="section-link hover:text-vk-text transition-colors">Filters</a>
+            <a href="#models" class="section-link hover:text-vk-text transition-colors">Models</a>
+            <a href="#community" class="section-link hover:text-vk-text transition-colors">Community</a>
+          </nav>
+        </div>
         <nav class="flex items-center gap-3 text-sm text-vk-text-muted md:gap-6">
           <a href={`${base}introduction/`} class="hover:text-vk-text transition-colors">Docs</a>
           <a href={`${base}reference/troubleshooting/`} class="hidden hover:text-vk-text transition-colors md:inline">FAQ</a>
           <div class="flex items-center gap-2">
-            <a
-              href="https://github.com/Kim2091/vapourkit"
-              target="_blank"
-              rel="noopener"
-              aria-label="GitHub"
-              class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-vk-border/10 text-vk-text-muted transition-colors hover:border-vk-border/20 hover:text-vk-text"
-            >
+            <a href="https://github.com/Kim2091/vapourkit" target="_blank" rel="noopener noreferrer" aria-label="GitHub" class={socialLinkClass}>
               <Icon name="github" size={15} />
             </a>
-            <a
-              href="https://discord.gg/uYKMn2hGwB"
-              target="_blank"
-              rel="noopener"
-              aria-label="Discord"
-              class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-vk-border/10 text-vk-text-muted transition-colors hover:border-vk-border/20 hover:text-vk-text"
-            >
+            <a href="https://discord.gg/uYKMn2hGwB" target="_blank" rel="noopener noreferrer" aria-label="Discord" class={socialLinkClass}>
               <Icon name="discord" size={15} />
             </a>
-            <a
-              href="https://ko-fi.com/kim20913944"
-              target="_blank"
-              rel="noopener"
-              aria-label="Ko-fi"
-              class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-vk-border/10 text-vk-text-muted transition-colors hover:border-vk-border/20 hover:text-vk-text"
-            >
+            <a href="https://ko-fi.com/kim20913944" target="_blank" rel="noopener noreferrer" aria-label="Ko-fi" class={socialLinkClass}>
               <Icon name="coffee" size={15} />
             </a>
           </div>
           <a
             href="https://ko-fi.com/s/2e5ebd456d"
             target="_blank"
-            rel="noopener"
+            rel="noopener noreferrer"
             class="hidden rounded-md border border-vk-brand-purple/35 bg-vk-elevated px-3.5 py-1.5 font-medium text-vk-text transition-colors hover:border-vk-brand-purple/65 md:inline-block"
           >
             Download
           </a>
         </nav>
       </div>
-      <!-- Subheader: in-page anchors -->
+      <!-- Subheader: in-page anchors (mobile only) -->
       <nav
-        class="flex h-9 items-center justify-start gap-7 overflow-x-auto whitespace-nowrap border-t border-vk-border/8 text-[11px] uppercase tracking-[0.08em] text-vk-text-subtle [-ms-overflow-style:none] [scrollbar-width:none] md:justify-center md:overflow-x-visible [&::-webkit-scrollbar]:hidden"
+        class="subheader-nav flex md:hidden h-9 items-center justify-start gap-8 overflow-x-auto whitespace-nowrap border-t border-vk-border/8 text-[11px] tracking-[0.12em] text-vk-text-subtle [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        aria-label="Page sections"
       >
-        <a href="#features" class="hover:text-vk-text-muted transition-colors">Features</a>
-        <a href="#tour" class="hover:text-vk-text-muted transition-colors">Screenshots</a>
-        <a href="#filters" class="hover:text-vk-text-muted transition-colors">Filters</a>
-        <a href="#models" class="hover:text-vk-text-muted transition-colors">Models</a>
-        <a href="#community" class="hover:text-vk-text-muted transition-colors">Community</a>
+        <a href="#features" class="section-link hover:text-vk-text-muted transition-colors">Features</a>
+        <a href="#tour" class="section-link hover:text-vk-text-muted transition-colors">Screenshots</a>
+        <a href="#filters" class="section-link hover:text-vk-text-muted transition-colors">Filters</a>
+        <a href="#models" class="section-link hover:text-vk-text-muted transition-colors">Models</a>
+        <a href="#community" class="section-link hover:text-vk-text-muted transition-colors">Community</a>
       </nav>
     </div>
   </header>
 
-  <main>
+  <main id="main-content">
     <!-- Hero -->
-    <section class="relative overflow-hidden px-6 py-20 lg:py-28 text-center">
+    <section class="relative overflow-hidden px-6 py-24 lg:py-36 text-center">
       <div
-        class="pointer-events-none absolute inset-0"
-        style="background: radial-gradient(ellipse 60% 50% at 50% 30%, var(--vk-hero-glow-1), transparent 70%), radial-gradient(ellipse 40% 35% at 50% 30%, var(--vk-hero-glow-2), transparent 70%);"
+        class="pointer-events-none absolute inset-0 hero-glow"
       >
       </div>
-      <div class="relative z-10 mx-auto max-w-3xl">
-        <h1 class="text-4xl font-bold leading-[1.1] tracking-tight text-vk-text sm:text-5xl lg:text-[3rem]">
+      <div class="relative z-10 mx-auto max-w-4xl">
+        <h1 class="font-display text-4xl font-normal leading-[1.08] tracking-tight text-vk-text sm:text-5xl lg:text-7xl animate-fade-in-up">
           Restore and upscale video,<br />
-          <span class="font-normal text-vk-text-muted">beautifully.</span>
+          <span class="text-vk-accent animate-fade-in-up delay-200">beautifully.</span>
         </h1>
-        <p class="mx-auto mt-5 max-w-xl text-base leading-relaxed text-vk-text-muted">
-          Free, open source video restoration for Windows. Real-time preview,
-          side-by-side comparison, batch processing, and AI support.
+        <p class="mx-auto mt-8 max-w-xl text-lg leading-relaxed text-vk-text-muted animate-fade-in-up delay-400 sm:text-xl">
+          FOSS video restoration for Windows.
         </p>
-        <div class="mt-8 flex flex-wrap justify-center gap-3">
+        <div class="mt-10 flex flex-wrap justify-center gap-3 animate-fade-in-up delay-500">
           <a
             href="https://ko-fi.com/s/2e5ebd456d"
             target="_blank"
-            rel="noopener"
-            class="rounded-lg border border-vk-brand-purple/40 bg-vk-elevated px-6 py-2.5 text-sm font-medium text-vk-text transition-colors hover:border-vk-brand-purple/70"
+            rel="noopener noreferrer"
+            class="rounded-lg bg-vk-brand-purple px-6 py-2.5 text-sm font-medium text-black transition-colors hover:bg-vk-brand-purple-soft"
           >
             Download Free
           </a>
           <a
             href="https://github.com/Kim2091/vapourkit"
             target="_blank"
-            rel="noopener"
-            class="flex items-center gap-2 rounded-lg border border-vk-border/15 px-6 py-2.5 text-sm text-vk-text transition-colors hover:border-vk-border/25"
+            rel="noopener noreferrer"
+            class="flex items-center gap-2 rounded-lg border border-vk-border/10 px-6 py-2.5 text-sm text-vk-text-muted transition-colors hover:border-vk-border/20 hover:text-vk-text"
           >
             <Icon name="github" size={16} />
             <span>View on GitHub</span>
@@ -171,42 +170,38 @@ const base = rawBase.endsWith('/') ? rawBase : `${rawBase}/`;
         </div>
 
         <!-- Hero screenshot -->
-        <div class="mx-auto mt-14 max-w-3xl rounded-xl border border-vk-border/10 bg-vk-surface-2 p-1.5">
-          <img
-            src={`${base}pictures/Main Screen.png`}
-            alt="Vapourkit main upscale view"
-            class="block h-auto w-full rounded-md"
-            loading="eager"
-            decoding="async"
-          />
+        <div class="mx-auto mt-20 max-w-4xl animate-fade-in-up delay-700">
+          <div class="rounded-2xl border border-vk-border/5 bg-black/40 p-1.5 shadow-2xl shadow-black/50 animate-float-simple">
+            <img
+              src={`${base}pictures/Main Screen.png`}
+              alt="Screenshot of the VapourKit application showing the video upscaling interface with preview window, output controls, and filter panel"
+              width="2065"
+              height="1260"
+              class="block h-auto w-full rounded-xl"
+              loading="eager"
+              decoding="async"
+              fetchpriority="high"
+            />
+          </div>
         </div>
       </div>
     </section>
 
     <!-- Features -->
-    <section id="features" class="border-t border-vk-border/8 px-6 py-16">
+    <section id="features" class="border-t border-vk-border/8 px-6 py-20 reveal">
       <div class="mx-auto max-w-6xl">
-        <div class="mb-9 text-center">
-          <div
-            class="mb-1.5 text-[11px] uppercase tracking-[0.1em] text-vk-text-subtle"
-          >
-            Features
-          </div>
-          <h2 class="text-2xl font-semibold text-vk-text sm:text-[1.625rem]">
-            Everything you need to upscale, compare, and ship.
-          </h2>
-        </div>
+        <SectionHeading title="Features" />
         <div
-          class="grid grid-cols-1 overflow-hidden rounded-xl border border-vk-border/8 bg-vk-border/8 gap-px sm:grid-cols-2 md:grid-cols-3"
+          class="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3"
         >
           {
             features.map((f) => (
-              <div class="bg-vk-surface-2 p-6">
-                <div class="mb-3.5 flex h-8 w-8 items-center justify-center rounded-md border border-vk-brand-cyan/30 bg-vk-brand-cyan/8">
-                  <Icon name={f.icon as any} size={16} stroke="var(--sl-color-accent, #06b6d4)" />
+              <div class={`group bg-vk-surface-2 p-6 rounded-xl border border-vk-border/5 transition-all duration-300 hover:-translate-y-1 hover:border-vk-accent/15 hover:shadow-lg hover:shadow-black/20 ${f.colSpan || ''}`}>
+                <div class="mb-4 flex h-10 w-10 items-center justify-center rounded-lg border border-vk-accent/25 bg-vk-accent/6 group-hover:border-vk-accent/40 group-hover:bg-vk-accent/10 transition-colors duration-300">
+                  <Icon name={f.icon} size={18} stroke="rgb(var(--vk-accent))" />
                 </div>
-                <strong class="text-sm text-vk-text">{f.title}</strong>
-                <p class="mt-1.5 text-xs leading-relaxed text-vk-text-muted">{f.desc}</p>
+                <h3 class="text-sm font-semibold text-vk-text group-hover:text-vk-accent transition-colors duration-300">{f.title}</h3>
+                <p class="mt-2 text-xs leading-relaxed text-vk-text-muted">{f.desc}</p>
               </div>
             ))
           }
@@ -215,80 +210,61 @@ const base = rawBase.endsWith('/') ? rawBase : `${rawBase}/`;
     </section>
 
     <!-- Before / After -->
-    <section class="px-6 py-16">
+    <section id="before-after" class="border-t border-vk-border/8 px-6 py-20 reveal">
       <div class="mx-auto max-w-6xl">
-        <div class="mb-7 text-center">
-          <div
-            class="mb-1.5 text-[11px] uppercase tracking-[0.1em] text-vk-text-subtle"
-          >
-            Before / After
-          </div>
-          <h2 class="text-2xl font-semibold text-vk-text sm:text-[1.625rem]">
-            See the difference.
-          </h2>
-        </div>
-        <div class="space-y-6">
-          <figure
-            class="overflow-hidden rounded-xl border border-vk-border/10 bg-vk-surface-2"
-          >
-            <div class="aspect-[21/9]">
-              <iframe
-                src="https://www.youtube-nocookie.com/embed/bQ4f-w2gub0?rel=0"
-                title="SpongeBob Season 1 remaster"
-                loading="lazy"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                allowfullscreen
-                class="block h-full w-full"></iframe>
-            </div>
-            <figcaption class="px-3 py-2 text-[11px] text-vk-text-subtle">
-              SpongeBob Season 1 remaster
-            </figcaption>
-          </figure>
-          <figure
-            class="overflow-hidden rounded-xl border border-vk-border/10 bg-vk-surface-2"
-          >
-            <div class="aspect-[21/9]">
-              <iframe
-                src="https://www.youtube-nocookie.com/embed/dPt9NtzQ_04?rel=0"
-                title="VHS Restoration Sample"
-                loading="lazy"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                allowfullscreen
-                class="block h-full w-full"></iframe>
-            </div>
-            <figcaption class="px-3 py-2 text-[11px] text-vk-text-subtle">
-              VHS Restoration Sample
-            </figcaption>
-          </figure>
+        <SectionHeading title="Before / After" />
+        <div class="space-y-10">
+          {videos.map((v) => (
+            <figure>
+              <div class="relative rounded-2xl border border-vk-border/8 bg-black/40 p-1 shadow-2xl shadow-black/40">
+                <div class="aspect-video relative overflow-hidden rounded-xl">
+                  <iframe
+                    src={v.src}
+                    title={v.title}
+                    loading="lazy"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen
+                    class="block h-full w-full"></iframe>
+                  <div class="pointer-events-none absolute inset-0 ring-1 ring-inset ring-vk-border/5 rounded-xl"></div>
+                </div>
+              </div>
+              <figcaption class="mt-3 text-center text-xs text-vk-text-subtle">
+                {v.caption}
+              </figcaption>
+            </figure>
+          ))}
         </div>
       </div>
     </section>
 
-    <!-- Tour -->
-    <section id="tour" class="border-t border-vk-border/8 px-6 py-16">
+    <!-- Interactive comparison -->
+    <section class="border-t border-vk-border/8 px-6 py-20 reveal">
       <div class="mx-auto max-w-6xl">
-        <div class="mb-7 text-center">
-          <div
-            class="mb-1.5 text-[11px] uppercase tracking-[0.1em] text-vk-text-subtle"
-          >
-            Tour
-          </div>
-          <h2 class="text-2xl font-semibold text-vk-text sm:text-[1.625rem]">
-            A look around.
-          </h2>
-        </div>
-        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <SectionHeading title="Interactive comparison" />
+        <ComparisonSlider />
+      </div>
+    </section>
+
+    <!-- Tour -->
+    <section id="tour" class="border-t border-vk-border/8 px-6 py-20 reveal">
+      <div class="mx-auto max-w-6xl">
+        <SectionHeading title="Screenshots" />
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {
             screenshots.map((s) => (
-              <figure class="overflow-hidden rounded-lg border border-vk-border/10 bg-vk-surface-2">
+              <figure data-lightbox tabindex="0" role="button" class="group relative cursor-pointer overflow-hidden rounded-2xl border border-vk-border/5 bg-black/20 transition-all duration-300 hover:border-vk-border/10">
                 <img
                   src={`${base}${s.src}`}
                   alt={s.caption}
-                  class="block aspect-video w-full object-contain"
+                  class="block aspect-video w-full object-cover"
                   loading="lazy"
                   decoding="async"
                 />
-                <figcaption class="px-3 py-2 text-[11px] text-vk-text-subtle">
+                <div class="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-black/0 transition-colors duration-300 group-hover:bg-black/40" aria-hidden="true">
+                  <Icon name="expand" size={28} stroke="white" class="opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                  <span class="opacity-0 transition-opacity duration-300 group-hover:opacity-100 text-xs font-medium text-white">Click to expand</span>
+                </div>
+                <figcaption class="relative border-t border-vk-border/5 px-4 py-3 text-[11px] text-vk-text-subtle">
                   {s.caption}
                 </figcaption>
               </figure>
@@ -297,142 +273,115 @@ const base = rawBase.endsWith('/') ? rawBase : `${rawBase}/`;
         </div>
       </div>
     </section>
+    <Lightbox />
 
     <!-- Filters -->
-    <section id="filters" class="border-t border-vk-border/8 px-6 py-16">
-      <div class="mx-auto max-w-6xl">
-        <div class="mb-7 text-center">
-          <div
-            class="mb-1.5 text-[11px] uppercase tracking-[0.1em] text-vk-text-subtle"
-          >
-            Filters
-          </div>
-          <h2 class="text-2xl font-semibold text-vk-text sm:text-[1.625rem]">
-            Bundled filters, or write your own.
-          </h2>
-        </div>
-        <div class="flex flex-wrap justify-center gap-2">
-          {
-            filters.map((f) => (
-              <div class="rounded-md border border-vk-border/10 bg-vk-surface-2 px-4 py-2 text-sm text-vk-text">
-                {f.name}
+    <section id="filters" class="border-t border-vk-border/8 px-6 py-20 reveal">
+      <div class="mx-auto max-w-3xl rounded-2xl border border-vk-border/5 bg-vk-surface-2 p-8 md:p-10">
+        <SectionHeading
+          title="Filters"
+          description="157 filters across 34 categories."
+        />
+        <div class="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2">
+          {filterCategories.map((cat) => (
+            <div>
+              <h3 class="mb-2 text-[11px] tracking-[0.08em] text-vk-text-subtle">{cat.name}</h3>
+              <div class="flex flex-wrap gap-1.5">
+                {cat.filters.map((f) => (<div class={chipClass}>{f}</div>))}
               </div>
-            ))
-          }
-          <div
-            class="rounded-md border border-dashed border-vk-border/15 px-4 py-2 text-sm text-vk-text-muted"
-          >
-            + Custom filters
-          </div>
+            </div>
+          ))}
+        </div>
+        <div class="mt-6 rounded-lg border border-dashed border-vk-border/10 px-4 py-3 text-center text-sm text-vk-text-muted transition-colors hover:border-vk-accent/20">
+          + Custom filters
+        </div>
+        <div class="mt-8 flex flex-wrap justify-center gap-3">
+          <a href={`${base}filters/reference/`} class={ctaPrimaryClass}>
+            View all filters <Icon name="arrow-right" size={12} />
+          </a>
+          <a href={`${base}filters/writing/`} class={ctaSecondaryClass}>
+            Write your own <Icon name="arrow-right" size={12} />
+          </a>
         </div>
       </div>
     </section>
 
     <!-- Models -->
-    <section id="models" class="border-t border-vk-border/8 px-6 py-16">
-      <div class="mx-auto max-w-6xl">
-        <div class="mb-7 text-center">
-          <div
-            class="mb-1.5 text-[11px] uppercase tracking-[0.1em] text-vk-text-subtle"
-          >
-            Models
-          </div>
-          <h2 class="text-2xl font-semibold text-vk-text sm:text-[1.625rem]">
-            Bundled models, or bring your own.
-          </h2>
-        </div>
+    <section id="models" class="border-t border-vk-border/8 px-6 py-20 reveal">
+      <div class="mx-auto max-w-3xl rounded-2xl border border-vk-border/5 bg-vk-surface-2 p-8 md:p-10">
+        <SectionHeading
+          title="Models"
+          description="VSR models use temporal awareness for stable output across frames. Image-based models process each frame independently."
+        />
         <div class="flex flex-wrap justify-center gap-2">
-          {
-            models.map((m) => (
-              <div class="rounded-md border border-vk-border/10 bg-vk-surface-2 px-4 py-2 text-sm text-vk-text">
-                {m.name}
-                {m.tag && (
-                  <span class="ml-2 text-[11px] text-vk-text-subtle">{m.tag}</span>
-                )}
-              </div>
-            ))
-          }
-          <div
-            class="rounded-md border border-dashed border-vk-border/15 px-4 py-2 text-sm text-vk-text-muted"
-          >
-            + Custom ONNX
+          <div class={chipClass}>
+            TFDAT
+            <span class="ml-1.5 rounded-sm bg-vk-accent/12 px-1.5 py-0.5 text-[10px] text-vk-accent">VSR</span>
           </div>
+          <div class={chipClass}>AnimeSharpV4</div>
+          <div class={chipClass}>UltraSharpV2</div>
+
+        </div>
+        <div class="mt-8 flex flex-wrap justify-center gap-3">
+          <a href={`${base}models/included/`} class={ctaPrimaryClass}>
+            Browse models <Icon name="arrow-right" size={12} />
+          </a>
+          <a href={`${base}models/custom-onnx/`} class={ctaSecondaryClass}>
+            Bring your own ONNX <Icon name="arrow-right" size={12} />
+          </a>
         </div>
       </div>
     </section>
 
     <!-- System requirements -->
-    <section class="border-t border-vk-border/8 px-6 py-16">
+    <section class="border-t border-vk-border/8 px-6 py-20 reveal">
       <div class="mx-auto max-w-6xl">
-        <div class="mb-7 text-center">
-          <div
-            class="mb-1.5 text-[11px] uppercase tracking-[0.1em] text-vk-text-subtle"
-          >
-            System Requirements
-          </div>
-          <h2 class="text-2xl font-semibold text-vk-text sm:text-[1.625rem]">
-            Hardware needs.
-          </h2>
-        </div>
-        <div
-          class="mx-auto max-w-xl rounded-xl border border-vk-border/10 bg-vk-surface-2 p-7 text-sm text-vk-text-muted"
+        <SectionHeading title="System Requirements" />
+        <dl
+          class="mx-auto max-w-xl rounded-2xl border border-vk-border/5 bg-vk-surface-2 p-8 text-sm"
         >
           {
             sysreqs.map((r, i) => (
               <div
-                class={`grid grid-cols-[auto_1fr] items-baseline gap-x-4 py-2 sm:gap-x-6 ${i < sysreqs.length - 1 ? 'border-b border-vk-border/5' : ''}`}
+                class={`flex items-baseline justify-between gap-x-6 py-3 ${i < sysreqs.length - 1 ? 'border-b border-vk-border/5' : ''}`}
               >
-                <span>{r.label}</span>
-                <span class="text-right text-vk-text">{r.value}</span>
+                <dt class="font-mono text-xs text-vk-text-muted tracking-wide">{r.label}</dt>
+                <dd class="text-right text-vk-text">{r.value}</dd>
               </div>
             ))
           }
-        </div>
+        </dl>
       </div>
     </section>
 
     <!-- Community + Support -->
-    <section id="community" class="border-t border-vk-border/8 px-6 py-16">
-      <div class="mx-auto grid max-w-6xl grid-cols-1 gap-12 md:grid-cols-2 md:gap-0 md:divide-x md:divide-vk-border/8">
-        <div class="text-center md:px-8">
-          <div
-            class="mb-1.5 text-[11px] uppercase tracking-[0.1em] text-vk-text-subtle"
-          >
-            Community
-          </div>
-          <h2 class="text-2xl font-semibold text-vk-text sm:text-[1.625rem]">
-            Join the Discord.
-          </h2>
-          <p class="mx-auto mt-3 max-w-md text-sm text-vk-text-muted">
-            Share your results, find workflow files shared by others, get help, or request features!
+    <section id="community" class="border-t border-vk-border/8 px-6 py-20 reveal">
+      <div class="mx-auto grid max-w-6xl grid-cols-1 gap-16 md:grid-cols-2 md:gap-10">
+        <div class="text-center md:px-8 flex flex-col items-center">
+          <SectionHeading title="Community" />
+          <p class="mx-auto mt-4 max-w-md flex-grow text-sm leading-relaxed text-vk-text-muted">
+            Share your results, find workflow files shared by others, get help, or request features.
           </p>
           <a
             href="https://discord.gg/uYKMn2hGwB"
             target="_blank"
-            rel="noopener"
-            class="mt-6 inline-flex items-center gap-2 rounded-lg border border-indigo-500/40 bg-vk-surface-2 px-6 py-2.5 text-sm font-medium text-vk-text transition-colors hover:border-indigo-500/70"
+            rel="noopener noreferrer"
+            class="mt-7 inline-flex items-center gap-2 rounded-lg border border-vk-accent/30 bg-vk-surface-2 px-6 py-2.5 text-sm font-medium text-vk-text transition-colors hover:border-vk-accent/50 hover:bg-vk-accent/5"
           >
             <Icon name="discord" size={16} />
             <span>Join Discord</span>
           </a>
         </div>
-        <div class="text-center md:px-8">
-          <div
-            class="mb-1.5 text-[11px] uppercase tracking-[0.1em] text-vk-text-subtle"
-          >
-            Support
-          </div>
-          <h2 class="text-2xl font-semibold text-vk-text sm:text-[1.625rem]">
-            Vapourkit is free. Tips help.
-          </h2>
-          <p class="mx-auto mt-3 max-w-md text-sm text-vk-text-muted">
-            Donations support my work and help fund development!
+        <div class="text-center md:px-8 flex flex-col items-center">
+          <SectionHeading title="Support" />
+          <p class="mx-auto mt-4 max-w-md flex-grow text-sm leading-relaxed text-vk-text-muted">
+            Donations support my work and help fund development.
           </p>
           <a
             href="https://ko-fi.com/kim20913944"
             target="_blank"
-            rel="noopener"
-            class="mt-6 inline-flex items-center gap-2 rounded-lg border border-pink-500/40 px-6 py-2.5 text-sm font-medium text-pink-500 transition-colors hover:border-pink-500/70 dark:text-pink-300"
+            rel="noopener noreferrer"
+            class="mt-7 inline-flex items-center gap-2 rounded-lg bg-vk-brand-purple px-6 py-2.5 text-sm font-medium text-black transition-colors hover:bg-vk-brand-purple-soft"
           >
             <Icon name="coffee" size={14} />
             <span>Ko-fi</span>
@@ -440,15 +389,50 @@ const base = rawBase.endsWith('/') ? rawBase : `${rawBase}/`;
         </div>
       </div>
     </section>
-
-    <!-- Credits footer -->
-    <footer
-      class="border-t border-vk-border/8 px-6 py-7 text-center text-[11px] text-vk-text-subtle"
-    >
-      Copyright © Kim2091
-    </footer>
   </main>
 
+  <!-- Credits footer -->
+  <footer
+    class="border-t border-vk-border/8 px-6 py-8 text-center text-[11px] text-vk-text-subtle"
+  >
+    Copyright &copy; {new Date().getFullYear()} Kim2091
+  </footer>
+
   <FloatingToggle />
+
+  <script is:inline>
+    const revealObserver = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('revealed');
+          revealObserver.unobserve(entry.target);
+        }
+      }
+    }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+    document.querySelectorAll('.reveal').forEach((el) => revealObserver.observe(el));
+
+    document.querySelectorAll('.section-link').forEach((link) => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        const target = document.querySelector(link.getAttribute('href'));
+        if (target) {
+          var prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+          target.scrollIntoView({ behavior: prefersReduced ? 'auto' : 'smooth', block: 'start' });
+        }
+      });
+    });
+
+    const activeNavObserver = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting) {
+          const id = entry.target.id;
+          document.querySelectorAll('.section-link').forEach((a) => {
+            a.classList.toggle('active', a.getAttribute('href') === `#${id}`);
+          });
+        }
+      }
+    }, { threshold: 0.4 });
+    document.querySelectorAll('#features, #tour, #filters, #models, #community').forEach((el) => activeNavObserver.observe(el));
+  </script>
 
 </Layout>
