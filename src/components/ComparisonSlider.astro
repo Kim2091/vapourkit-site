@@ -43,6 +43,7 @@ const { before, after } = Astro.props
       aria-label="Comparison slider"
       class="comparison-input"
     />
+    <div class="comparison-overlay" aria-hidden="true"></div>
     <div class="comparison-handle"></div>
   </div>
 </div>
@@ -56,9 +57,11 @@ const { before, after } = Astro.props
     width: 100%;
     height: 100%;
     background: transparent;
-    z-index: 10;
+    z-index: 9;
     cursor: ew-resize;
     margin: 0;
+    opacity: 0;
+    pointer-events: none;
   }
   .comparison-input::-webkit-slider-thumb {
     appearance: none;
@@ -79,6 +82,16 @@ const { before, after } = Astro.props
     border: none;
     border-radius: 0;
     box-shadow: 0 0 12px rgba(167, 139, 250, 0.5);
+  }
+  .comparison-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+    touch-action: none;
+    cursor: ew-resize;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
   }
   .comparison-handle {
     position: absolute;
@@ -120,13 +133,45 @@ const { before, after } = Astro.props
     const slider = container?.querySelector('.comparison-input');
     const afterEl = container?.querySelector('.comparison-after');
     const handle = container?.querySelector('.comparison-handle');
-    if (slider) {
-      const update = () => {
-        const v = Number(slider.value);
-        if (afterEl) afterEl.style.clipPath = 'inset(0 ' + (100 - v) + '% 0 0)';
-        if (handle) handle.style.left = v + '%';
-      };
-      slider.addEventListener('input', update);
-    }
+    const overlay = container?.querySelector('.comparison-overlay');
+    if (!slider || !overlay || !container) return;
+
+    const update = (v) => {
+      const clamped = Math.max(0, Math.min(100, v));
+      slider.value = String(clamped);
+      if (afterEl) afterEl.style.clipPath = 'inset(0 ' + (100 - clamped) + '% 0 0)';
+      if (handle) handle.style.left = clamped + '%';
+    };
+
+    // Keep keyboard support via hidden input
+    slider.addEventListener('input', () => {
+      update(Number(slider.value));
+    });
+
+    // Pointer-driven drag
+    const onPointerMove = (e) => {
+      const rect = container.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const pct = (x / rect.width) * 100;
+      update(pct);
+    };
+
+    overlay.addEventListener('pointerdown', (e) => {
+      overlay.setPointerCapture(e.pointerId);
+      onPointerMove(e);
+    });
+
+    overlay.addEventListener('pointermove', (e) => {
+      if (!overlay.hasPointerCapture(e.pointerId)) return;
+      onPointerMove(e);
+    });
+
+    overlay.addEventListener('pointerup', (e) => {
+      overlay.releasePointerCapture(e.pointerId);
+    });
+
+    overlay.addEventListener('pointercancel', (e) => {
+      overlay.releasePointerCapture(e.pointerId);
+    });
   })();
 </script>
