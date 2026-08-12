@@ -10,18 +10,18 @@ import { base } from '../lib/base';
 const features = [
   {
     icon: 'chip',
-    title: 'Dual backends',
-    desc: 'TensorRT (NVIDIA) or DirectML (AMD, Intel, NV). Switch at runtime.',
+    title: 'Three inference backends',
+    desc: 'TensorRT, DirectML, and NCNN Vulkan, with availability based on your operating system and GPU.',
   },
   {
     icon: 'eye',
     title: 'Real-time preview',
-    desc: 'See results as they process. Tweak filters and watch the output update instantly.',
+    desc: 'See output frames as processing advances, then adjust filters and rerun the pipeline.',
   },
   {
     icon: 'split',
     title: 'Compare viewer',
-    desc: 'Built-in side-by-side video comparison. Drag the slider to see your restoration against the original.',
+    desc: 'Compare the source and output side by side. Video Compare is built in on Windows and optional on Linux.',
   },
   {
     icon: 'grid',
@@ -46,10 +46,10 @@ const screenshots = [
 ];
 
 const sysreqs = [
-  { label: 'OS', value: 'Windows 10/11 (x64)' },
+  { label: 'OS', value: 'Windows 10/11 or x86_64 Linux' },
   { label: 'RAM', value: '8 GB +' },
   { label: 'Storage', value: '5 GB min · 10 GB recommended' },
-  { label: 'GPU', value: 'NVIDIA 16xx+ or any DX12-capable card' },
+  { label: 'GPU', value: 'NVIDIA, AMD, or Intel with a supported backend' },
   { label: 'VRAM', value: '6 GB +' },
 ];
 
@@ -147,7 +147,7 @@ const ctaSecondaryClass = 'inline-flex items-center gap-2 rounded-lg border bord
           <span class="text-vk-accent animate-fade-in-up delay-200">beautifully.</span>
         </h1>
         <p class="mx-auto mt-8 max-w-xl text-lg leading-relaxed text-vk-text-muted animate-fade-in-up delay-400 sm:text-xl">
-          FOSS video restoration for Windows.
+          FOSS video restoration for Windows and Linux.
         </p>
         <div class="mt-10 flex flex-wrap justify-center gap-3 animate-fade-in-up delay-500">
           <a
@@ -280,7 +280,7 @@ const ctaSecondaryClass = 'inline-flex items-center gap-2 rounded-lg border bord
       <div class="mx-auto max-w-3xl rounded-2xl border border-vk-border/5 bg-vk-surface-2 p-8 md:p-10">
         <SectionHeading
           title="Filters"
-          description="157 filters across 34 categories."
+          description="A broad catalog of bundled VapourSynth filters across dozens of categories."
         />
         <div class="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2">
           {filterCategories.map((cat) => (
@@ -315,11 +315,11 @@ const ctaSecondaryClass = 'inline-flex items-center gap-2 rounded-lg border bord
         />
         <div class="flex flex-wrap justify-center gap-2">
           <div class={chipClass}>
-            TFDAT
+            TSPAN / TFDAT
             <span class="ml-1.5 rounded-sm bg-vk-accent/12 px-1.5 py-0.5 text-[10px] text-vk-accent">VSR</span>
           </div>
+          <div class={chipClass}>AnimeJaNai</div>
           <div class={chipClass}>AnimeSharpV4</div>
-          <div class={chipClass}>UltraSharpV2</div>
 
         </div>
         <div class="mt-8 flex flex-wrap justify-center gap-3">

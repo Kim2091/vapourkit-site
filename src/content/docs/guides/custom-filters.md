@@ -27,7 +27,7 @@ Templates are stored as `.vkfilter` files — see [File Formats](/reference/file
 
 ## Pre-made filters
 
-Vapourkit ships with **150+ pre-made filters** covering antialiasing, denoising, sharpening, color correction, deinterlacing, and more. See the [Filter Reference](/filters/reference) for the full list.
+Vapourkit ships with **160+ pre-made filters** covering antialiasing, denoising, sharpening, color correction, deinterlacing, and more. See the [Filter Reference](/filters/reference) for the full list.
 
 ## Writing your own
 

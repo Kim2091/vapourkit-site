@@ -3,26 +3,32 @@ title: Basic Usage
 description: Common workflows for upscaling a single video.
 ---
 
-The simplest Vapourkit workflow: drop in a video, pick a model, press go.
+The simplest Vapourkit workflow: drop in a video, configure the pipeline, and start processing.
 
 ## Process a single video
 
-1. **Add a video.** Drag and drop into the *Input Video* panel, or click to browse.
-2. **Pick a model.** Choose an upscaling model. Different models target different content types — see [Included Models](/models/included).
-3. **Pick a backend.** TensorRT (NVIDIA) or DirectML (AMD/Intel). The default is usually right.
-4. **Configure output.** In *Output Settings*, set the save location and the container format.
-5. **Process.** Click *Start Processing*. The *Output Preview* panel updates as frames complete.
+1. **Add a video.** Drop one into the **Source** panel, or click it to browse.
+2. **Pick a model.** Choose an upscaling model that matches your content. See [Included Models](/models/included).
+3. **Choose an inference backend.** The backend menu only shows options supported by your operating system:
+   - Windows: TensorRT, DirectML, and NCNN Vulkan.
+   - Linux: NCNN Vulkan, plus TensorRT when a compatible NVIDIA CUDA/TensorRT stack is installed.
+4. **Configure output.** In the **Output** panel, choose the container, save path, codec, pixel format, and encoding options.
+5. **Process.** Click **Start processing**. The **Preview** panel updates as the output is produced.
+
+You can click **Validate** first to process a short test segment, or **Preview** to open the current script in `vs-view` without creating the final output.
 
 ## Preview and compare
 
-While processing, the *Output Preview* panel shows the latest output frame. Once it's done:
+After processing finishes:
 
-- *Compare* — launches the bundled side-by-side video viewer with the original and upscaled file aligned frame-for-frame.
-- *Open Folder* — opens File Explorer at the output location.
+- **Compare** launches the side-by-side viewer with the source and output aligned frame by frame.
+- **Open Folder** opens the output directory.
+
+On Linux, the comparison viewer is optional and must be installed separately as the `video-compare` command.
 
 ## Next
 
-- [How it works](/how-it-works) — what's happening under the hood
-- [Custom Filters](/guides/custom-filters) — chain VapourSynth filters into the pipeline
-- [Templates & Workflows](/guides/templates-workflows) — save and share configurations
-- [Batch Processing](/guides/batch-processing) — process many videos in a queue
+- [How it works](/how-it-works) - what's happening under the hood
+- [Custom Filters](/guides/custom-filters) - chain VapourSynth filters into the pipeline
+- [Templates & Workflows](/guides/templates-workflows) - save and share configurations
+- [Batch Processing](/guides/batch-processing) - process many videos in a queue

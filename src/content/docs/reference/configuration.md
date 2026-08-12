@@ -1,30 +1,34 @@
 ---
 title: Configuration
-description: Where Vapourkit stores its config, models, filter templates, and workflows.
+description: Where Vapourkit stores its configuration, models, filter templates, and workflows.
 ---
+
+Vapourkit keeps user data under its application data directory. The exact root depends on the platform:
+
+- **Windows:** a `data/` directory beside the installed executable.
+- **Linux:** `~/.config/vapourkit-gui/data/` for packaged AppImage builds.
 
 ## App configuration
 
-- **App config:** `data/config/app-config.json` — user preferences and model metadata.
-
-## Filter templates
-
-- **Location:** `data/config/filter-templates/`
-- **Format:** `.vkfilter` (TOML)
-
-See [File Formats](/reference/file-formats) for the schema.
+- **App config:** `data/config/app-config.json` - user preferences, model metadata, and encoding settings.
+- **Filter templates:** `data/config/filter-templates/` - `.vkfilter` files copied from the bundled catalog or created by the user.
+- **Queue:** stored in the application data directory and managed by the Queue pane.
 
 ## Workflows
 
-- **Location:** wherever you save them — the workflow Export dialog asks for a path.
+Workflows are saved wherever you choose them through the **Export** dialog.
+
 - **Format:** `.vkworkflow` (TOML)
+- **Contents:** filters, model settings, backend, output settings, segment selection, and colorimetry settings
+
+See [Templates & Workflows](/guides/templates-workflows) and [File Formats](/reference/file-formats).
 
 ## Models
 
-- **Built-in:** `include/models/` inside the Vapourkit install
-- **User-imported:** `data/models/`
-- **Formats:**
-  - `.onnx` — universal, runs on any supported backend
-  - `.engine` — NVIDIA TensorRT engine, GPU- and driver-bound
+- **Runtime location:** `data/models/`
+- **Bundled models:** copied there during first-run setup
+- **Imported models:** added there by the **Import Custom Model** flow
+- **`.onnx`:** source model used directly by DirectML and NCNN Vulkan, or used to build a TensorRT engine
+- **`.engine`:** GPU- and driver-specific TensorRT engine
 
-See [Custom ONNX Models](/models/custom-onnx) for importing your own.
+The AppImage itself is read-only, so Linux stores writable application data outside the mounted image.

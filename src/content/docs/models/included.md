@@ -3,36 +3,39 @@ title: Included Models
 description: AI upscaling models that ship with Vapourkit.
 ---
 
-> This page mirrors the auto-generated section from `src/data/modelLicenses.ts` in the Vapourkit repo. Re-run `npm run update-docs` upstream to refresh.
-
-All included models follow the original licenses they were published with. Most are licensed CC BY-NC-SA 4.0 unless stated otherwise — see [Licensing](/models/licensing) for full details.
+Vapourkit currently ships these model families. The exact filenames and metadata are maintained in the desktop repository's bundled model configuration.
 
 ## Video models (VSR)
 
-Temporally-aware models for video. Best stability across frames.
+Temporally aware models for video. They use neighbouring frames to improve stability over time.
 
-- **AniRemaster TSPAN** — Classic Anime
-- **AnimeUpV2 TSPAN** — Low Quality Anime
-- **AniRestore TFDAT** — LQ Anime or Cartoons (Dot Crawl, Rainbows)
+- **AniRestore TFDAT** - LQ anime or cartoons, including dot crawl and rainbowing
+- **AniRemaster TSPAN** - classic anime
+- **AnimeUpV2 TSPAN** - low-quality anime
 
 ## Image-based models
 
-Frame-by-frame processing. Still works on video but is not temporally stable — you may see shimmer.
+Frame-by-frame models. They work on video but may show shimmer or flicker on fine detail.
 
-- **AnimeJaNai HD V3** — Modern Anime
-- **AnimeJaNai SD V1** — Classic HQ Anime
-- **AniSD AC/DC SPAN** — Classic SD Anime *(License: CC BY-NC 4.0)*
-- **AnimeSharpV4** — Low Quality Anime
-- **2x_bndl_animefilm_v1.5** — Low Quality SD Anime *(License: CC BY 4.0)*
+- **AnimeJaNai HD V3** - modern anime
+- **AnimeJaNai HD V3 Sharp 1** - modern, higher-detail anime
+- **AnimeJaNai SD V1** - classic high-quality anime
+- **AnimeJaNai V2** - modern anime
+- **AniSD AC SPAN** - classic high-quality SD anime
+- **AniSD DC SPAN** - classic low-quality SD anime
+- **AnimeSharpV4 Fast** - low-quality anime
+- **Animefilm bundle** - low-quality SD anime
+
+The model picker shows the full model name, scale, precision, and display tag where available.
 
 ## Model support
 
-Vapourkit supports any model that `vs-mlrt` supports. See the [vs-mlrt wiki](https://github.com/AmusementClub/vs-mlrt/wiki) for details.
+Vapourkit supports models accepted by `vs-mlrt`, subject to the selected backend's requirements. See the [vs-mlrt wiki](https://github.com/AmusementClub/vs-mlrt/wiki) for model-specific details.
 
-A great place to find supported models is the [OpenModelDB](https://openmodeldb.info/).
+For licensing information, see [Licensing](/models/licensing). Check the license of any model before redistributing it.
 
 ## Where models live
 
-At runtime, all models — both bundled and user-imported — live in `data/models/` inside your Vapourkit install directory.
+At runtime, bundled and imported models are stored in `data/models/` under Vapourkit's application data directory. On Linux, the default data directory is under `~/.config/vapourkit-gui/data/`.
 
-For bringing your own, see [Custom ONNX Models](/models/custom-onnx).
+For bringing your own model, see [Custom ONNX Models](/models/custom-onnx).

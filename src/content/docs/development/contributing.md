@@ -3,7 +3,7 @@ title: Contributing
 description: How to contribute code, docs, or filter templates to Vapourkit.
 ---
 
-> Contribution guidelines are evolving. For now, the best paths are:
+The desktop application and this documentation site are maintained in separate repositories.
 
 ## Reporting bugs
 
@@ -11,7 +11,7 @@ Open an issue on [GitHub](https://github.com/Kim2091/vapourkit/issues) with:
 
 - Your OS, GPU, and driver version
 - The exact steps to reproduce
-- Any relevant log output (Vapourkit writes to `data/logs/main.log` inside the install directory).
+- Any relevant log output from the application's `data/logs/` directory.
 
 ## Pull requests
 

@@ -3,45 +3,28 @@ title: Batch Processing
 description: Queue multiple videos and process them sequentially.
 ---
 
-Process multiple videos in a queue, each with its own settings captured at the time you select it.
+Process multiple videos in the **Queue** pane. Each item keeps the workflow that was selected when it was added.
 
-## How it works
+## Add videos to the queue
 
-1. **Add multiple videos.** Drop multiple files into the *Input Video* panel, or click to browse and select more than one.
-2. **Configure.** Review the list, adjust output paths in the modal if needed.
-3. **Add to queue.** Click *Add {N} Video(s) to Queue*.
-4. **Process.** Click *Start Queue* — videos process one at a time.
+1. Configure the model, filters, backend, and output settings you want to use.
+2. Drop multiple videos into the **Source** panel, or click it and select several files.
+3. Vapourkit adds the files directly to the queue and opens the **Queue** pane.
+4. Review the generated output names. Select a queue item to inspect or edit its workflow if needed.
+5. Click **Start queue**.
 
-## Same model, many videos
+When the queue is open, adding a single video also adds it as a queue item instead of replacing the current source.
 
-The common case: upscale multiple videos with the same model and settings.
+## Queue behavior
 
-1. Select your upscaling model.
-2. Choose output format and backend.
-3. Add multiple videos via the *Input Video* panel.
-4. Review output paths in the modal.
-5. Click *Add Videos to Queue*.
-6. Click *Start Queue*.
-
-## With custom filters
-
-If your pipeline includes filters, configure them once and they apply to every queued video.
-
-1. Build your filter pipeline in the filter panel — add filters, optionally add an AI upscaling model.
-2. Choose output format and backend.
-3. Add multiple videos.
-4. Review the workflow summary and output paths.
-5. Click *Add Videos to Queue*.
-6. Click *Start Queue*.
-
-## Key features
-
-- **Workflow snapshots.** Each video captures your settings at selection time. Changing settings later won't affect queued videos.
-- **Auto paths.** Output paths are auto-generated with the `_upscaled` suffix (e.g. `video.mp4` → `video_upscaled.mkv`). Existing files are overwritten without warning.
-- **Queue management.** Reorder by dragging, cancel items, requeue failed videos, or clear completed items.
-- **Persistent.** The queue saves automatically across sessions.
+- **Workflow snapshots.** Each item stores its model, filters, backend, output settings, and segment selection when it is added. Later UI changes do not affect existing items.
+- **Sequential processing.** The queue processes one pending item at a time.
+- **Output names.** Descriptive naming is enabled by default. Generated names use tags such as `-4x`, `-denoise`, `-resize1080`, or `-processed`, depending on the workflow.
+- **Queue management.** Reorder pending items, duplicate an item, cancel processing, retry completed or failed items, open an item's output folder, or clear finished items.
+- **Persistence.** The queue is saved automatically and restored when Vapourkit starts.
 
 ## Tips
 
-- **Test first.** If processing multiple videos with the same workflow, always test one video before processing the rest.
-- **Check paths.** Review output paths before confirming — existing files are overwritten without warning.
+- Test one video first, especially when using a new model or filter chain.
+- Check each output path before starting the queue.
+- Use **Clear done** to remove completed and failed items while keeping pending work.

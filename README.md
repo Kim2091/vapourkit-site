@@ -63,11 +63,11 @@ src/
 scripts/
   generateFilterDocs.ts      # Reads .vkfilter files -> src/content/docs/filters/reference.md
 astro.config.mjs             # Starlight + Tailwind integrations + sidebar
-tailwind.config.mjs          # Theme tokens (RGB triplets for opacity modifiers)
+postcss.config.mjs           # Keeps the site independent of ancestor PostCSS config
 .github/workflows/deploy.yml  # CI: checkout -> gen:filters -> build -> deploy to GitHub Pages
 ```
 
-The landing page lives outside the Starlight content collection so it can be fully custom. All docs live at root-level URLs (`/installation`, `/guides/basic-usage`, etc.) — there is no `/docs/` prefix.
+The landing page lives outside the Starlight content collection so it can be fully custom. All docs live at root-level URLs (`/installation`, `/guides/basic-usage`, etc.) - there is no `/docs/` prefix. This repository is the source of truth for the public documentation; the desktop repository no longer carries a separate local docs tree.
 
 ## CI
 
