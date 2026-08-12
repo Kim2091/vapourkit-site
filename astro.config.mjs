@@ -10,6 +10,8 @@ export default defineConfig({
       description: 'Documentation for Vapourkit — AI video upscaling and enhancement.',
       components: {
         Footer: './src/components/StarlightFooter.astro',
+        ThemeProvider: './src/components/StarlightThemeProvider.astro',
+        ThemeSelect: './src/components/StarlightThemeSelect.astro',
       },
       favicon: '/favicon.svg',
       logo: {
@@ -75,20 +77,6 @@ export default defineConfig({
       ],
       pagination: true,
       lastUpdated: true,
-      head: [
-        {
-          tag: 'script',
-          content: `(() => {
-            try {
-              const stored = localStorage.getItem('starlight-theme');
-              if (stored !== 'light' && stored !== 'dark') {
-                localStorage.setItem('starlight-theme', 'dark');
-                document.documentElement.dataset.theme = 'dark';
-              }
-            } catch (e) {}
-          })();`,
-        },
-      ],
     }),
   ],
   vite: {

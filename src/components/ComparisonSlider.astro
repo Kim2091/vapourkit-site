@@ -7,8 +7,8 @@ interface Props {
 const { before, after } = Astro.props
 ---
 
-<div class="comparison-slider relative overflow-hidden rounded-2xl border border-vk-border/8 bg-black/40 p-1 shadow-2xl shadow-black/40">
-  <div class="relative aspect-video overflow-hidden rounded-xl">
+<div class="comparison-slider relative overflow-hidden rounded-sm border border-vk-border/10 bg-vk-surface-2 p-1 shadow-xl shadow-black/30">
+  <div class="relative aspect-video overflow-hidden rounded-sm">
     {
       before && after ? (
         <>
@@ -68,20 +68,20 @@ const { before, after } = Astro.props
     -webkit-appearance: none;
     width: 4px;
     height: 100%;
-    background: #a78bfa;
+    background: #3fb9a6;
     cursor: ew-resize;
     border: none;
     border-radius: 0;
-    box-shadow: 0 0 12px rgba(167, 139, 250, 0.5);
+    box-shadow: 0 0 12px rgba(63, 185, 166, 0.5);
   }
   .comparison-input::-moz-range-thumb {
     width: 4px;
     height: 100%;
-    background: #a78bfa;
+    background: #3fb9a6;
     cursor: ew-resize;
     border: none;
     border-radius: 0;
-    box-shadow: 0 0 12px rgba(167, 139, 250, 0.5);
+    box-shadow: 0 0 12px rgba(63, 185, 166, 0.5);
   }
   .comparison-overlay {
     position: absolute;
@@ -102,13 +102,13 @@ const { before, after } = Astro.props
     height: 40px;
     border-radius: 50%;
     background: #050505;
-    border: 3px solid #a78bfa;
+    border: 3px solid #3fb9a6;
     pointer-events: none;
     z-index: 11;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 0 16px rgba(167, 139, 250, 0.3);
+    box-shadow: 0 0 16px rgba(63, 185, 166, 0.3);
   }
   .comparison-handle::before,
   .comparison-handle::after {
@@ -116,7 +116,7 @@ const { before, after } = Astro.props
     display: block;
     width: 2px;
     height: 12px;
-    background: #a78bfa;
+    background: #3fb9a6;
     border-radius: 1px;
   }
   .comparison-handle::after {

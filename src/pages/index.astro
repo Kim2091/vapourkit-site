@@ -69,16 +69,16 @@ const filterCategories = [
   { name: 'Debanding', filters: ['GradFun3', 'f3kdb'] },
 ];
 
-const socialLinkClass = 'inline-flex h-8 w-8 items-center justify-center rounded-md border border-vk-border/10 text-vk-text-muted transition-colors hover:border-vk-border/20 hover:text-vk-text';
-const chipClass = 'inline-flex rounded-lg border border-vk-border/5 bg-vk-bg px-4 py-2 text-sm text-vk-text transition-colors hover:border-vk-accent/20';
-const ctaPrimaryClass = 'inline-flex items-center gap-2 rounded-lg border border-vk-accent/25 px-5 py-2 text-sm text-vk-text transition-colors hover:border-vk-accent/50 hover:bg-vk-accent/5';
-const ctaSecondaryClass = 'inline-flex items-center gap-2 rounded-lg border border-vk-border/10 px-5 py-2 text-sm text-vk-text-muted transition-colors hover:border-vk-border/20 hover:text-vk-text';
+const socialLinkClass = 'inline-flex h-8 w-8 items-center justify-center rounded-sm border border-vk-border/12 bg-vk-elevated/60 text-vk-text-muted transition-colors hover:border-vk-accent/45 hover:text-vk-accent';
+const chipClass = 'inline-flex rounded-sm border border-vk-border/12 bg-vk-elevated px-3 py-1.5 text-sm text-vk-text transition-colors hover:border-vk-accent/35';
+const ctaPrimaryClass = 'inline-flex items-center gap-2 rounded-sm bg-vk-accent-500 px-4 py-2 text-sm font-semibold text-vk-accent-ink transition-colors hover:bg-vk-accent-400';
+const ctaSecondaryClass = 'inline-flex items-center gap-2 rounded-sm border border-vk-border/15 bg-vk-elevated px-4 py-2 text-sm text-vk-text-muted transition-colors hover:border-vk-accent/35 hover:text-vk-text';
 ---
 
-<Layout grain>
+<Layout>
   <!-- Top nav -->
   <header
-    class="sticky top-0 z-40 border-b border-vk-border/10 bg-vk-bg/75 backdrop-blur-md"
+    class="sticky top-0 z-40 border-b border-vk-border/10 bg-vk-surface-2/95 backdrop-blur-md"
   >
     <div class="mx-auto max-w-6xl px-6">
       <!-- Main row: real destinations -->
@@ -114,7 +114,7 @@ const ctaSecondaryClass = 'inline-flex items-center gap-2 rounded-lg border bord
             href="https://ko-fi.com/s/2e5ebd456d"
             target="_blank"
             rel="noopener noreferrer"
-            class="hidden rounded-md border border-vk-brand-purple/35 bg-vk-elevated px-3.5 py-1.5 font-medium text-vk-text transition-colors hover:border-vk-brand-purple/65 md:inline-block"
+            class="hidden rounded-sm border border-vk-accent/35 bg-vk-elevated px-3.5 py-1.5 font-medium text-vk-text transition-colors hover:border-vk-accent/65 md:inline-block"
           >
             Download
           </a>
@@ -154,7 +154,7 @@ const ctaSecondaryClass = 'inline-flex items-center gap-2 rounded-lg border bord
             href="https://ko-fi.com/s/2e5ebd456d"
             target="_blank"
             rel="noopener noreferrer"
-            class="rounded-lg bg-vk-brand-purple px-6 py-2.5 text-sm font-medium text-black transition-colors hover:bg-vk-brand-purple-soft"
+            class="rounded-sm bg-vk-accent-500 px-6 py-2.5 text-sm font-semibold text-vk-accent-ink transition-colors hover:bg-vk-accent-400"
           >
             Download Free
           </a>
@@ -162,7 +162,7 @@ const ctaSecondaryClass = 'inline-flex items-center gap-2 rounded-lg border bord
             href="https://github.com/Kim2091/vapourkit"
             target="_blank"
             rel="noopener noreferrer"
-            class="flex items-center gap-2 rounded-lg border border-vk-border/10 px-6 py-2.5 text-sm text-vk-text-muted transition-colors hover:border-vk-border/20 hover:text-vk-text"
+            class="flex items-center gap-2 rounded-sm border border-vk-border/15 bg-vk-elevated px-6 py-2.5 text-sm text-vk-text-muted transition-colors hover:border-vk-accent/35 hover:text-vk-text"
           >
             <Icon name="github" size={16} />
             <span>View on GitHub</span>
@@ -171,13 +171,13 @@ const ctaSecondaryClass = 'inline-flex items-center gap-2 rounded-lg border bord
 
         <!-- Hero screenshot -->
         <div class="mx-auto mt-20 max-w-4xl animate-fade-in-up delay-700">
-          <div class="rounded-2xl border border-vk-border/5 bg-black/40 p-1.5 shadow-2xl shadow-black/50 animate-float-simple">
+          <div class="rounded-sm border border-vk-border/12 bg-vk-surface-2 p-1.5 shadow-2xl shadow-black/40">
             <img
-              src={`${base}pictures/Main Screen.png`}
-              alt="Screenshot of the VapourKit application showing the video upscaling interface with preview window, output controls, and filter panel"
-              width="2065"
-              height="1260"
-              class="block h-auto w-full rounded-xl"
+              src={`${base}pictures/vapourkit-cover.png`}
+              alt="Vapourkit v2.0.0 interface showing video preview, filters, source controls, and output settings"
+              width="2560"
+              height="1540"
+              class="block h-auto w-full rounded-sm"
               loading="eager"
               decoding="async"
               fetchpriority="high"
@@ -196,8 +196,8 @@ const ctaSecondaryClass = 'inline-flex items-center gap-2 rounded-lg border bord
         >
           {
             features.map((f) => (
-              <div class={`group bg-vk-surface-2 p-6 rounded-xl border border-vk-border/5 transition-all duration-300 hover:-translate-y-1 hover:border-vk-accent/15 hover:shadow-lg hover:shadow-black/20 ${f.colSpan || ''}`}>
-                <div class="mb-4 flex h-10 w-10 items-center justify-center rounded-lg border border-vk-accent/25 bg-vk-accent/6 group-hover:border-vk-accent/40 group-hover:bg-vk-accent/10 transition-colors duration-300">
+              <div class={`group rounded-sm border border-vk-border/10 bg-vk-surface-2 p-5 transition-colors duration-200 hover:border-vk-accent/30 hover:bg-vk-elevated ${f.colSpan || ''}`}>
+                <div class="mb-4 flex h-9 w-9 items-center justify-center rounded-sm border border-vk-accent/25 bg-vk-accent/6 group-hover:border-vk-accent/40 group-hover:bg-vk-accent/10 transition-colors duration-200">
                   <Icon name={f.icon} size={18} stroke="rgb(var(--vk-accent))" />
                 </div>
                 <h3 class="text-sm font-semibold text-vk-text group-hover:text-vk-accent transition-colors duration-300">{f.title}</h3>
@@ -216,8 +216,8 @@ const ctaSecondaryClass = 'inline-flex items-center gap-2 rounded-lg border bord
         <div class="space-y-10">
           {videos.map((v) => (
             <figure>
-              <div class="relative rounded-2xl border border-vk-border/8 bg-black/40 p-1 shadow-2xl shadow-black/40">
-                <div class="aspect-video relative overflow-hidden rounded-xl">
+              <div class="relative rounded-sm border border-vk-border/10 bg-vk-surface-2 p-1 shadow-xl shadow-black/30">
+                <div class="aspect-video relative overflow-hidden rounded-sm">
                   <iframe
                     src={v.src}
                     title={v.title}
@@ -225,7 +225,7 @@ const ctaSecondaryClass = 'inline-flex items-center gap-2 rounded-lg border bord
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                     allowfullscreen
                     class="block h-full w-full"></iframe>
-                  <div class="pointer-events-none absolute inset-0 ring-1 ring-inset ring-vk-border/5 rounded-xl"></div>
+                  <div class="pointer-events-none absolute inset-0 rounded-sm ring-1 ring-inset ring-vk-border/8"></div>
                 </div>
               </div>
               <figcaption class="mt-3 text-center text-xs text-vk-text-subtle">
@@ -252,7 +252,7 @@ const ctaSecondaryClass = 'inline-flex items-center gap-2 rounded-lg border bord
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {
             screenshots.map((s) => (
-              <figure data-lightbox tabindex="0" role="button" class="group relative cursor-pointer overflow-hidden rounded-2xl border border-vk-border/5 bg-black/20 transition-all duration-300 hover:border-vk-border/10">
+              <figure data-lightbox tabindex="0" role="button" class="group relative cursor-pointer overflow-hidden rounded-sm border border-vk-border/10 bg-vk-surface-2 transition-colors duration-200 hover:border-vk-accent/30">
                 <img
                   src={`${base}${s.src}`}
                   alt={s.caption}
@@ -260,11 +260,11 @@ const ctaSecondaryClass = 'inline-flex items-center gap-2 rounded-lg border bord
                   loading="lazy"
                   decoding="async"
                 />
-                <div class="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-black/0 transition-colors duration-300 group-hover:bg-black/40" aria-hidden="true">
+                <div class="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-black/0 transition-colors duration-200 group-hover:bg-black/40" aria-hidden="true">
                   <Icon name="expand" size={28} stroke="white" class="opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
                   <span class="opacity-0 transition-opacity duration-300 group-hover:opacity-100 text-xs font-medium text-white">Click to expand</span>
                 </div>
-                <figcaption class="relative border-t border-vk-border/5 px-4 py-3 text-[11px] text-vk-text-subtle">
+                <figcaption class="relative border-t border-vk-border/10 px-4 py-3 text-[11px] text-vk-text-subtle">
                   {s.caption}
                 </figcaption>
               </figure>
@@ -277,7 +277,7 @@ const ctaSecondaryClass = 'inline-flex items-center gap-2 rounded-lg border bord
 
     <!-- Filters -->
     <section id="filters" class="border-t border-vk-border/8 px-6 py-20 reveal">
-      <div class="mx-auto max-w-3xl rounded-2xl border border-vk-border/5 bg-vk-surface-2 p-8 md:p-10">
+      <div class="mx-auto max-w-3xl rounded-sm border border-vk-border/10 bg-vk-surface-2 p-8 md:p-10">
         <SectionHeading
           title="Filters"
           description="A broad catalog of bundled VapourSynth filters across dozens of categories."
@@ -292,7 +292,7 @@ const ctaSecondaryClass = 'inline-flex items-center gap-2 rounded-lg border bord
             </div>
           ))}
         </div>
-        <div class="mt-6 rounded-lg border border-dashed border-vk-border/10 px-4 py-3 text-center text-sm text-vk-text-muted transition-colors hover:border-vk-accent/20">
+        <div class="mt-6 rounded-sm border border-dashed border-vk-border/10 px-4 py-3 text-center text-sm text-vk-text-muted transition-colors hover:border-vk-accent/20">
           + Custom filters
         </div>
         <div class="mt-8 flex flex-wrap justify-center gap-3">
@@ -308,7 +308,7 @@ const ctaSecondaryClass = 'inline-flex items-center gap-2 rounded-lg border bord
 
     <!-- Models -->
     <section id="models" class="border-t border-vk-border/8 px-6 py-20 reveal">
-      <div class="mx-auto max-w-3xl rounded-2xl border border-vk-border/5 bg-vk-surface-2 p-8 md:p-10">
+      <div class="mx-auto max-w-3xl rounded-sm border border-vk-border/10 bg-vk-surface-2 p-8 md:p-10">
         <SectionHeading
           title="Models"
           description="VSR models use temporal awareness for stable output across frames. Image-based models process each frame independently."
@@ -316,7 +316,7 @@ const ctaSecondaryClass = 'inline-flex items-center gap-2 rounded-lg border bord
         <div class="flex flex-wrap justify-center gap-2">
           <div class={chipClass}>
             TSPAN / TFDAT
-            <span class="ml-1.5 rounded-sm bg-vk-accent/12 px-1.5 py-0.5 text-[10px] text-vk-accent">VSR</span>
+            <span class="ml-1.5 rounded-sm bg-vk-accent-500/12 px-1.5 py-0.5 text-[10px] text-vk-accent">VSR</span>
           </div>
           <div class={chipClass}>AnimeJaNai</div>
           <div class={chipClass}>AnimeSharpV4</div>
@@ -338,12 +338,12 @@ const ctaSecondaryClass = 'inline-flex items-center gap-2 rounded-lg border bord
       <div class="mx-auto max-w-6xl">
         <SectionHeading title="System Requirements" />
         <dl
-          class="mx-auto max-w-xl rounded-2xl border border-vk-border/5 bg-vk-surface-2 p-8 text-sm"
+          class="mx-auto max-w-xl rounded-sm border border-vk-border/10 bg-vk-surface-2 p-8 text-sm"
         >
           {
             sysreqs.map((r, i) => (
               <div
-                class={`flex items-baseline justify-between gap-x-6 py-3 ${i < sysreqs.length - 1 ? 'border-b border-vk-border/5' : ''}`}
+                class={`flex items-baseline justify-between gap-x-6 py-3 ${i < sysreqs.length - 1 ? 'border-b border-vk-border/10' : ''}`}
               >
                 <dt class="font-mono text-xs text-vk-text-muted tracking-wide">{r.label}</dt>
                 <dd class="text-right text-vk-text">{r.value}</dd>
@@ -366,7 +366,7 @@ const ctaSecondaryClass = 'inline-flex items-center gap-2 rounded-lg border bord
             href="https://discord.gg/uYKMn2hGwB"
             target="_blank"
             rel="noopener noreferrer"
-            class="mt-7 inline-flex items-center gap-2 rounded-lg border border-vk-accent/30 bg-vk-surface-2 px-6 py-2.5 text-sm font-medium text-vk-text transition-colors hover:border-vk-accent/50 hover:bg-vk-accent/5"
+            class="mt-7 inline-flex items-center gap-2 rounded-sm border border-vk-accent/30 bg-vk-surface-2 px-6 py-2.5 text-sm font-medium text-vk-text transition-colors hover:border-vk-accent/50 hover:bg-vk-accent/5"
           >
             <Icon name="discord" size={16} />
             <span>Join Discord</span>
@@ -381,7 +381,7 @@ const ctaSecondaryClass = 'inline-flex items-center gap-2 rounded-lg border bord
             href="https://ko-fi.com/kim20913944"
             target="_blank"
             rel="noopener noreferrer"
-            class="mt-7 inline-flex items-center gap-2 rounded-lg bg-vk-brand-purple px-6 py-2.5 text-sm font-medium text-black transition-colors hover:bg-vk-brand-purple-soft"
+            class="mt-7 inline-flex items-center gap-2 rounded-sm bg-vk-accent-500 px-6 py-2.5 text-sm font-medium text-vk-accent-ink transition-colors hover:bg-vk-accent-400"
           >
             <Icon name="coffee" size={14} />
             <span>Ko-fi</span>
