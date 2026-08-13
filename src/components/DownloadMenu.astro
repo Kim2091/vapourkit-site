@@ -1,0 +1,50 @@
+---
+import Icon from './Icon.astro';
+
+interface Props {
+  compact?: boolean;
+}
+
+const { compact = false } = Astro.props;
+const triggerClass = compact
+  ? 'inline-flex items-center gap-1.5 rounded-sm border border-vk-accent/35 bg-vk-elevated px-3.5 py-1.5 font-medium text-vk-text transition-colors hover:border-vk-accent/65'
+  : 'inline-flex items-center gap-2 rounded-sm bg-vk-accent-500 px-6 py-2.5 text-sm font-semibold text-vk-accent-ink transition-colors hover:bg-vk-accent-400';
+---
+
+<details class="download-menu relative z-50 inline-block text-left">
+  <summary class:list={[triggerClass, 'cursor-pointer list-none [&::-webkit-details-marker]:hidden']}>
+    Download
+    <Icon name="arrow-down" size={compact ? 13 : 14} />
+  </summary>
+  <div class="absolute right-0 z-50 mt-2 w-56 overflow-hidden rounded-sm border border-vk-border/15 bg-vk-surface-2 p-1 text-left shadow-xl shadow-black/30">
+    <a
+      href="https://ko-fi.com/s/2e5ebd456d"
+      target="_blank"
+      rel="noopener noreferrer"
+      class="block rounded-sm px-3 py-2.5 text-sm text-vk-text transition-colors hover:bg-vk-elevated"
+    >
+      <span class="block font-medium">Windows</span>
+      <span class="mt-0.5 block text-xs text-vk-text-muted">Stable download</span>
+    </a>
+    <a
+      href="https://github.com/Kim2091/vapourkit-nightly/releases"
+      target="_blank"
+      rel="noopener noreferrer"
+      class="block rounded-sm px-3 py-2.5 text-sm text-vk-text transition-colors hover:bg-vk-elevated"
+    >
+      <span class="block font-medium">Linux</span>
+      <span class="mt-0.5 block text-xs text-vk-text-muted">Nightly AppImage</span>
+    </a>
+  </div>
+</details>
+
+<script>
+  document.addEventListener('click', (event) => {
+    const target = event.target;
+    if (!(target instanceof Node)) return;
+
+    document.querySelectorAll<HTMLDetailsElement>('.download-menu[open]').forEach((menu) => {
+      if (!menu.contains(target)) menu.removeAttribute('open');
+    });
+  });
+</script>
