@@ -1,6 +1,6 @@
 ---
-title: Templates & Workflows
-description: Save, share, and restore filter configurations and full processing pipelines.
+title: Save & Reuse Workflows
+description: Save, share, and restore your processing setup.
 ---
 
 Vapourkit has two reusable artifacts:
@@ -37,7 +37,7 @@ If a workflow refers to a model that is not installed on the current machine, th
 
 ## Filter templates
 
-A filter template is a single `.vkfilter` file - useful for reusing one configured filter across many workflows. See [Custom Filters](/guides/custom-filters) for creating them.
+A filter template is a single `.vkfilter` file - useful for reusing one configured filter across many workflows. See [Add Filters](/guides/custom-filters) for creating them.
 
 ## File formats
 

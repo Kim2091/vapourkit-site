@@ -1,6 +1,6 @@
 ---
-title: Custom Filters
-description: Add and chain VapourSynth filters in your processing pipeline.
+title: Add Filters
+description: Add ready-made filters to your processing pipeline.
 ---
 
 Vapourkit lets you write and chain custom VapourSynth filters before and after the AI upscaling step.
@@ -27,8 +27,12 @@ Templates are stored as `.vkfilter` files — see [File Formats](/reference/file
 
 ## Pre-made filters
 
-Vapourkit ships with **160+ pre-made filters** covering antialiasing, denoising, sharpening, color correction, deinterlacing, and more. See the [Filter Reference](/filters/reference) for the full list.
+Vapourkit ships with **160+ pre-made filters on Windows**, covering antialiasing, denoising, sharpening, color correction, deinterlacing, and more. Linux exposes a curated subset whose Python and native dependencies are verified by Linux setup. See the [Filter Reference](/filters/reference) for the full catalog and [Platform Support](/filters/platform-support) for the platform split, then use the app's filter picker to see what is available on your platform.
+
+## Linux filters
+
+Linux does not install arbitrary third-party native plugins or Windows-only Hybrid scripts. A custom filter can use any API provided by the Linux setup, but it will fail during preview or processing if it imports a package or plugin that is not installed. See [Write Custom Filters](/filters/writing) for platform-specific guidance.
 
 ## Writing your own
 
-For details on filter authoring, see [Writing Custom Filters](/filters/writing).
+For details on filter authoring, see [Write Custom Filters](/filters/writing).

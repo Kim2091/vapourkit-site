@@ -9,9 +9,11 @@ The desktop application and this documentation site are maintained in separate r
 
 Open an issue on [GitHub](https://github.com/Kim2091/vapourkit/issues) with:
 
-- Your OS, GPU, and driver version
+- Your OS, desktop session (Wayland or X11), GPU, and driver version
 - The exact steps to reproduce
 - Any relevant log output from the application's `data/logs/` directory.
+
+On packaged Linux builds, the log directory is under `~/.config/vapourkit-gui/data/logs/` by default. Include your Linux distribution, kernel, Python version, FFmpeg version, and `vulkaninfo --summary` output when reporting a Linux-specific issue.
 
 ## Pull requests
 

@@ -1,6 +1,6 @@
 ---
-title: Custom ONNX Models
-description: Import your own ONNX models into Vapourkit.
+title: Use Your Own Model
+description: Import your own ONNX model into Vapourkit.
 ---
 
 Use the **Import Custom Model** action in Vapourkit to add an ONNX model:
@@ -15,9 +15,13 @@ Imported models are stored in Vapourkit's `data/models/` directory and appear in
 
 ## Backend behavior
 
-- **TensorRT** compiles the ONNX model into a GPU-specific `.engine` file. The build options include precision and input-shape settings.
-- **DirectML** runs the ONNX file directly on Windows.
-- **NCNN Vulkan** runs the ONNX file directly through Vulkan on Windows or Linux.
+| Backend | Platform | Build behavior | Input file |
+| --- | --- | --- | --- |
+| TensorRT | Windows and Linux NVIDIA systems | Compiles a GPU-specific `.engine`; first use may take several minutes. | ONNX source is retained for rebuilding. |
+| DirectML | Windows | No engine build. | ONNX file directly. |
+| NCNN Vulkan | Windows and Linux | No engine build. | ONNX file directly. |
+
+On Linux, TensorRT also requires a compatible NVIDIA CUDA/TensorRT stack on the host.
 
 TensorRT engine files are tied to the GPU and driver environment that built them. Keep the original ONNX file if you may need to rebuild the engine or use the model with another backend.
 
@@ -31,4 +35,4 @@ Vapourkit supports model architectures accepted by `vs-mlrt`, subject to the sel
 
 ## Licensing
 
-Check the license of any model you import. See [Licensing](/models/licensing) for the licenses of Vapourkit's bundled models.
+Check the license of any model you import. See [Model Licensing](/models/licensing) for the licenses of Vapourkit's bundled models.

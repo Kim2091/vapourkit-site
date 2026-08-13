@@ -7,7 +7,14 @@ import Lightbox from '../components/Lightbox.astro';
 import SectionHeading from '../components/SectionHeading.astro';
 import { base } from '../lib/base';
 
-const features = [
+type Feature = {
+  icon: 'chip' | 'eye' | 'split' | 'grid' | 'code' | 'save';
+  title: string;
+  desc: string;
+  colSpan?: string;
+};
+
+const features: Feature[] = [
   {
     icon: 'chip',
     title: 'Three inference backends',
@@ -31,7 +38,7 @@ const features = [
   {
     icon: 'code',
     title: 'Custom filters',
-    desc: 'Write your own filters, or install any VapourSynth script or plugin from the community.',
+    desc: 'Write your own filters and use the platform-verified VapourSynth catalog, with more available on Windows.',
   },
   {
     icon: 'save',
@@ -41,16 +48,20 @@ const features = [
 ];
 
 const screenshots = [
-  { caption: 'Batch processor', src: 'pictures/Batch View.png' },
-  { caption: 'Filter panel', src: 'pictures/Filter Panel.png' },
+  { caption: 'Queue', src: 'pictures/Queue.png' },
+  { caption: 'Privacy Mode', src: 'pictures/Privacy Mode.png' },
+  { caption: 'Settings', src: 'pictures/Settings.png' },
+  { caption: 'Filter Pane', src: 'pictures/Filter Pane.png' },
 ];
 
 const sysreqs = [
-  { label: 'OS', value: 'Windows 10/11 or x86_64 Linux' },
-  { label: 'RAM', value: '8 GB +' },
-  { label: 'Storage', value: '5 GB min · 10 GB recommended' },
-  { label: 'GPU', value: 'NVIDIA, AMD, or Intel with a supported backend' },
-  { label: 'VRAM', value: '6 GB +' },
+  { label: 'OS', windows: 'Windows 10/11 (x64)', linux: 'x64 Linux distro with AppImage support' },
+  { label: 'RAM', windows: '8 GB +', linux: '8 GB +' },
+  { label: 'Storage', windows: '5 GB min · 10 GB recommended', linux: '5 GB min · 10 GB recommended' },
+  { label: 'GPU', windows: 'NVIDIA, AMD, or Intel', linux: 'Vulkan-capable GPU' },
+  { label: 'Backends', windows: 'TensorRT · DirectML · NCNN Vulkan', linux: 'NCNN Vulkan · TensorRT on NVIDIA' },
+  { label: 'Host software', windows: 'Included by setup', linux: 'Python 3.12/3.13 + venv · FFmpeg/ffprobe · Vulkan' },
+  { label: 'VRAM', windows: '6 GB + recommended', linux: '6 GB + recommended' },
 ];
 
 const videos = [
@@ -116,7 +127,7 @@ const ctaSecondaryClass = 'inline-flex items-center gap-2 rounded-sm border bord
             rel="noopener noreferrer"
             class="hidden rounded-sm border border-vk-accent/35 bg-vk-elevated px-3.5 py-1.5 font-medium text-vk-text transition-colors hover:border-vk-accent/65 md:inline-block"
           >
-            Download
+            Windows download
           </a>
         </nav>
       </div>
@@ -156,7 +167,7 @@ const ctaSecondaryClass = 'inline-flex items-center gap-2 rounded-sm border bord
             rel="noopener noreferrer"
             class="rounded-sm bg-vk-accent-500 px-6 py-2.5 text-sm font-semibold text-vk-accent-ink transition-colors hover:bg-vk-accent-400"
           >
-            Download Free
+             Download for Windows
           </a>
           <a
             href="https://github.com/Kim2091/vapourkit"
@@ -168,6 +179,9 @@ const ctaSecondaryClass = 'inline-flex items-center gap-2 rounded-sm border bord
             <span>View on GitHub</span>
           </a>
         </div>
+        <p class="mt-4 text-xs text-vk-text-subtle">
+          Linux x86_64 users can download the AppImage from the <a href="https://github.com/Kim2091/vapourkit-nightly/releases" target="_blank" rel="noopener noreferrer" class="text-vk-accent hover:underline">nightly releases</a>.
+        </p>
 
         <!-- Hero screenshot -->
         <div class="mx-auto mt-20 max-w-4xl animate-fade-in-up delay-700">
@@ -337,20 +351,37 @@ const ctaSecondaryClass = 'inline-flex items-center gap-2 rounded-sm border bord
     <section class="border-t border-vk-border/8 px-6 py-20 reveal">
       <div class="mx-auto max-w-6xl">
         <SectionHeading title="System Requirements" />
-        <dl
-          class="mx-auto max-w-xl rounded-sm border border-vk-border/10 bg-vk-surface-2 p-8 text-sm"
-        >
-          {
-            sysreqs.map((r, i) => (
-              <div
-                class={`flex items-baseline justify-between gap-x-6 py-3 ${i < sysreqs.length - 1 ? 'border-b border-vk-border/10' : ''}`}
-              >
-                <dt class="font-mono text-xs text-vk-text-muted tracking-wide">{r.label}</dt>
-                <dd class="text-right text-vk-text">{r.value}</dd>
-              </div>
-            ))
-          }
-        </dl>
+        <div class="mx-auto max-w-4xl overflow-x-auto rounded-sm border border-vk-border/10 bg-vk-surface-2">
+          <table class="w-full table-fixed text-left text-xs sm:text-sm">
+            <caption class="sr-only">Vapourkit system requirements by platform</caption>
+            <colgroup>
+              <col class="w-[22%]" />
+              <col class="w-[39%]" />
+              <col class="w-[39%]" />
+            </colgroup>
+            <thead class="border-b border-vk-border/10 text-vk-text-muted">
+              <tr>
+                <th scope="col" class="px-4 py-4 font-mono font-normal tracking-wide sm:px-6">Requirement</th>
+                <th scope="col" class="px-4 py-4 font-medium sm:px-6">Windows</th>
+                <th scope="col" class="px-4 py-4 font-medium sm:px-6">Linux</th>
+              </tr>
+            </thead>
+            <tbody>
+              {
+                sysreqs.map((r, i) => (
+                  <tr class={i < sysreqs.length - 1 ? 'border-b border-vk-border/10' : ''}>
+                    <th scope="row" class="break-words px-4 py-4 font-mono font-normal tracking-wide text-vk-text-muted sm:px-6">{r.label}</th>
+                    <td class="break-words px-4 py-4 text-vk-text sm:px-6">{r.windows}</td>
+                    <td class="break-words px-4 py-4 text-vk-text sm:px-6">{r.linux}</td>
+                  </tr>
+                ))
+              }
+            </tbody>
+          </table>
+        </div>
+        <p class="mx-auto mt-5 max-w-xl text-center text-xs leading-relaxed text-vk-text-muted">
+          <a href={`${base}installation/`} class="text-vk-accent hover:underline">Full installation requirements</a>
+        </p>
       </div>
     </section>
 

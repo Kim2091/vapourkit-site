@@ -30,7 +30,7 @@ A complete processing pipeline saved as TOML. A workflow can include:
 - output format and FFmpeg encoding settings;
 - segment selection and colorimetry settings.
 
-Use **Export** in the app's **Workflow** controls to save the current pipeline. Use **Open** to apply a workflow temporarily, or **Import** to add selected filters from a workflow to the current chain. See [Templates & Workflows](/guides/templates-workflows).
+Use **Export** in the app's **Workflow** controls to save the current pipeline. Use **Open** to apply a workflow temporarily, or **Import** to add selected filters from a workflow to the current chain. See [Save & Reuse Workflows](/guides/templates-workflows).
 
 Workflow model references are portable names where possible, but the referenced model still needs to be installed on the loading machine.
 

@@ -21,7 +21,7 @@ Workflows are saved wherever you choose them through the **Export** dialog.
 - **Format:** `.vkworkflow` (TOML)
 - **Contents:** filters, model settings, backend, output settings, segment selection, and colorimetry settings
 
-See [Templates & Workflows](/guides/templates-workflows) and [File Formats](/reference/file-formats).
+See [Save & Reuse Workflows](/guides/templates-workflows) and [File Formats](/reference/file-formats).
 
 ## Models
 

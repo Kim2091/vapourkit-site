@@ -45,6 +45,15 @@ jobs:
       - name: Generate filter docs
         run: npm run gen:filters
 
+      - name: Generate changelog
+        run: npm run gen:changelog
+
+      - name: Check generated docs are current
+        run: git diff --exit-code -- src/content/docs/filters/reference.md src/content/docs/changelog.md
+
+      - name: Check site
+        run: npm run check
+
       - name: Build site
         run: npm run build
 

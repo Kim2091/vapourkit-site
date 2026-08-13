@@ -12,8 +12,12 @@
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
-    "prebuild": "npm run gen:filters",
-    "gen:filters": "tsx scripts/generateFilterDocs.ts"
+    "prebuild": "npm run gen:filters && npm run gen:changelog",
+    "gen:filters": "tsx scripts/generateFilterDocs.ts",
+    "gen:changelog": "tsx scripts/generateChangelog.ts",
+    "check": "npm run check:links && npm run check:accessibility && astro check",
+    "check:links": "tsx scripts/checkDocsLinks.ts",
+    "check:accessibility": "tsx scripts/checkAccessibility.ts"
   },
   "dependencies": {
     "@astrojs/starlight": "^0.39.2",

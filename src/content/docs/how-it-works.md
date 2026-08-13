@@ -1,9 +1,9 @@
 ---
-title: How it works
+title: How Vapourkit Works
 description: Vapourkit's pipeline, filters, models, and backends explained.
 ---
 
-The mental model behind Vapourkit, end to end. If you've already followed [First Upscale](/first-upscale) and want to understand what's happening under the hood, start here.
+The mental model behind Vapourkit, end to end. Read this after [Process Your First Video](/first-upscale) if you want to understand what happens under the hood.
 
 ## VapourSynth
 
@@ -46,7 +46,7 @@ Vapourkit ships two kinds of AI upscaling model.
 - **VSR (Video Super-Resolution) models** are temporally aware: each output frame uses several neighbouring source frames, which improves stability over time.
 - **Image-based models** process each frame independently. They still work on video, but can show frame-to-frame shimmer or flicker on fine detail.
 
-For the bundled model list, see [Included Models](/models/included). For importing your own, see [Custom ONNX Models](/models/custom-onnx).
+For the bundled model list, see [Choose a Model](/models/included). For importing your own, see [Use Your Own Model](/models/custom-onnx).
 
 ## Filters
 
@@ -66,18 +66,18 @@ Two save formats serve different scopes:
 - **Filter templates (`.vkfilter`)** - one filter saved for reuse.
 - **Workflows (`.vkworkflow`)** - the complete pipeline, including enabled filters, the selected model, output settings, and segment selection.
 
-See [Templates & Workflows](/guides/templates-workflows) for the current Open, Import, and Export flow.
+See [Save & Reuse Workflows](/guides/templates-workflows) for the current Open, Import, and Export flow.
 
 ## Single video vs queue
 
 Both flows build and run the same kind of pipeline. The difference is when the configuration is captured:
 
 - **Single video** uses the filters, model, and settings currently selected in the UI.
-- **Queue** stores a workflow snapshot for each item when it is added. Editing the UI afterwards does not change that queued item. See [Batch Processing](/guides/batch-processing).
+- **Queue** stores a workflow snapshot for each item when it is added. Editing the UI afterwards does not change that queued item. See [Process Multiple Videos](/guides/batch-processing).
 
 ## Next
 
-- [Basic Usage](/guides/basic-usage) - the everyday workflow
-- [Custom Filters](/guides/custom-filters) - write and chain your own
-- [Templates & Workflows](/guides/templates-workflows) - save and share full pipelines
+- [Add Filters](/guides/custom-filters) - change the processing result
+- [Save & Reuse Workflows](/guides/templates-workflows) - repeat a setup
+- [Process Multiple Videos](/guides/batch-processing) - use the queue
 - [Filter Reference](/filters/reference) - every bundled filter

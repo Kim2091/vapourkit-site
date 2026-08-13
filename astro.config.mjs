@@ -29,42 +29,44 @@ export default defineConfig({
         {
           label: 'Getting Started',
           items: [
-            { label: 'Introduction', slug: 'introduction' },
+            { label: 'Start Here', slug: 'introduction' },
             { label: 'Installation', slug: 'installation' },
-            { label: 'First Upscale', slug: 'first-upscale' },
-            { label: 'How it works', slug: 'how-it-works' },
+            { label: 'Process Your First Video', slug: 'first-upscale' },
           ],
         },
         {
-          label: 'Guides',
+          label: 'Workflows',
           items: [
-            { label: 'Basic Usage', slug: 'guides/basic-usage' },
-            { label: 'Batch Processing', slug: 'guides/batch-processing' },
-            { label: 'Custom Filters', slug: 'guides/custom-filters' },
-            { label: 'Templates & Workflows', slug: 'guides/templates-workflows' },
+            { label: 'Process Multiple Videos', slug: 'guides/batch-processing' },
+            { label: 'Save & Reuse Workflows', slug: 'guides/templates-workflows' },
           ],
         },
         {
-          label: 'Models',
+          label: 'More Control',
           items: [
-            { label: 'Included Models', slug: 'models/included' },
-            { label: 'Custom ONNX Models', slug: 'models/custom-onnx' },
-            { label: 'Licensing', slug: 'models/licensing' },
+            { label: 'Add Filters', slug: 'guides/custom-filters' },
+            { label: 'Write Custom Filters', slug: 'filters/writing' },
+            { label: 'Choose a Model', slug: 'models/included' },
+            { label: 'Use Your Own Model', slug: 'models/custom-onnx' },
+            { label: 'Model Licensing', slug: 'models/licensing' },
+            { label: 'How Vapourkit Works', slug: 'how-it-works' },
           ],
         },
         {
-          label: 'Filters',
+          label: 'Help',
           items: [
-            { label: 'Filter Reference', slug: 'filters/reference' },
-            { label: 'Writing Custom Filters', slug: 'filters/writing' },
+            { label: 'Linux Setup & Troubleshooting', slug: 'reference/linux' },
+            { label: 'Troubleshooting & FAQ', slug: 'reference/troubleshooting' },
           ],
         },
         {
           label: 'Reference',
           items: [
+            { label: 'Filter Reference', slug: 'filters/reference' },
+            { label: 'Platform Support', slug: 'filters/platform-support' },
             { label: 'File Formats', slug: 'reference/file-formats' },
             { label: 'Configuration', slug: 'reference/configuration' },
-            { label: 'Troubleshooting & FAQ', slug: 'reference/troubleshooting' },
+            { label: 'Changelog', slug: 'changelog' },
           ],
         },
         {

@@ -1,6 +1,6 @@
 ---
-title: Batch Processing
-description: Queue multiple videos and process them sequentially.
+title: Process Multiple Videos
+description: Queue multiple videos and process them one after another.
 ---
 
 Process multiple videos in the **Queue** pane. Each item keeps the workflow that was selected when it was added.

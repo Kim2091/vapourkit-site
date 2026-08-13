@@ -9,13 +9,17 @@ Built with [Astro](https://astro.build/) and [Starlight](https://starlight.astro
 ```bash
 npm install
 
-# Generate the filter reference from a sibling vapourkit checkout
+# Generate generated docs from a sibling vapourkit checkout
 npm run gen:filters
+npm run gen:changelog
+
+# Run link, accessibility, and Astro checks
+npm run check
 
 # Dev server (hot reload)
 npm run dev
 
-# Production build (auto-runs gen:filters via prebuild)
+# Production build (auto-runs generated docs via prebuild)
 npm run build
 
 # Preview the production build
@@ -39,9 +43,10 @@ src/
       introduction.md
       installation.md
       first-upscale.md
+      changelog.md              # generated from the desktop repo
       guides/
       models/
-      filters/               # `reference.md` is auto-generated
+      filters/                  # `reference.md` is auto-generated
       reference/
       development/
   components/
@@ -62,9 +67,12 @@ src/
     wordmark.svg
 scripts/
   generateFilterDocs.ts      # Reads .vkfilter files -> src/content/docs/filters/reference.md
+  generateChangelog.ts        # Reads Changelog.md -> src/content/docs/changelog.md
+  checkDocsLinks.ts           # Checks absolute internal doc links
+  checkAccessibility.ts       # Checks image, iframe, and external-link attributes
 astro.config.mjs             # Starlight + Tailwind integrations + sidebar
 postcss.config.mjs           # Keeps the site independent of ancestor PostCSS config
-.github/workflows/deploy.yml  # CI: checkout -> gen:filters -> build -> deploy to GitHub Pages
+.github/workflows/deploy.yml  # CI: checkout -> generate -> check -> build -> deploy
 ```
 
 The landing page lives outside the Starlight content collection so it can be fully custom. All docs live at root-level URLs (`/installation`, `/guides/basic-usage`, etc.) - there is no `/docs/` prefix. This repository is the source of truth for the public documentation; the desktop repository no longer carries a separate local docs tree.
@@ -74,12 +82,17 @@ The landing page lives outside the Starlight content collection so it can be ful
 GitHub Actions builds and deploys on push to `main`, and validates on PRs. The workflow:
 1. Checks out the Vapourkit desktop repo alongside this one
 2. Installs deps with npm cache enabled
-3. Runs `gen:filters` and `astro build`
-4. Uploads the Pages artifact and deploys to GitHub Pages (push to main only; PRs validate without deploying)
+3. Generates the filter reference and changelog
+4. Runs the site checks and `astro build`
+5. Uploads the Pages artifact and deploys to GitHub Pages (push to main only; PRs validate without deploying)
 
 ## Refreshing the filter reference
 
 The filter reference page is generated from `.vkfilter` files in the Vapourkit repo's `include/plugins/plugin_filters/` and `include/filter_templates/` directories. Re-run `npm run gen:filters` (or push/PR to `main` to trigger CI) after adding or modifying filters upstream.
+
+## Refreshing the changelog
+
+The changelog page is generated from `Changelog.md` in the Vapourkit desktop repo. Re-run `npm run gen:changelog` after changing release notes upstream.
 
 ## License
 

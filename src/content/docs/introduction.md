@@ -1,34 +1,28 @@
 ---
-title: Introduction
-description: What Vapourkit is and who it's for.
+title: Start Here
+description: The simple three-step workflow for using Vapourkit.
 ---
 
-**Vapourkit** is a free, open-source application for upscaling and enhancing videos with VapourSynth and AI models. It runs on **Windows and Linux**. The available inference backends depend on the operating system:
+**Vapourkit** is a video restoration and upscaling app. It can be as simple as loading a video, choosing a model or filter, and processing the result.
 
-- **Windows:** TensorRT for NVIDIA GPUs, DirectML for AMD/Intel/NVIDIA GPUs, and NCNN Vulkan.
-- **Linux:** NCNN Vulkan on systems with a working Vulkan driver, and TensorRT on NVIDIA systems with a compatible CUDA/TensorRT installation. DirectML is Windows-only.
+## The basic workflow
 
-## What it does
+1. **Load a video.** Drop a file into the Source panel or browse for one.
+2. **Choose what to do.** Select an AI model, add a filter, or combine both.
+3. **Process the video.** Choose an output location and click **Start processing**.
 
-- **AI video upscaling.** Process videos with high-quality AI upscaling models.
-- **Multiple inference backends.** Use the backend supported by your operating system and GPU.
-- **Real-time preview.** See results while processing.
-- **Video comparison.** Compare the source and output side by side.
-- **Batch processing.** Queue multiple videos for sequential processing.
-- **Pre-made filters.** Use ready-to-run VapourSynth filters.
-- **Custom VapourSynth filters.** Write and chain your own processing filters.
-- **Templates and workflows.** Save and share filter configs (`.vkfilter`) and complete workflows (`.vkworkflow`).
-- **Custom models.** Import your own ONNX models.
+That is all you need for a first result. The rest of Vapourkit helps you adjust, repeat, or automate this workflow.
 
-## Who it's for
+## Choose your next step
 
-- Restoration enthusiasts working with archival video.
-- Anime and film communities upscaling SD or low-quality sources.
-- Anyone who wants AI-driven video enhancement without writing VapourSynth scripts by hand.
+- [Install Vapourkit](/installation) if you have not set it up yet.
+- [Process Your First Video](/first-upscale) for the full three-step walkthrough.
+- [Process Multiple Videos](/guides/batch-processing) if you have a queue of files.
+- [Add Filters](/guides/custom-filters) when you want more control over the result.
+- [Use Your Own Model](/models/custom-onnx) if you have an ONNX model to import.
 
-## Next
+## Supported platforms
 
-- [Installation](/installation) - download and first-launch setup
-- [First Upscale](/first-upscale) - process your first video in five minutes
-- [How it works](/how-it-works) - the conceptual model behind the app
-- [Basic Usage](/guides/basic-usage) - the everyday workflow
+Vapourkit runs on Windows and Linux. The available AI backends and bundled filters depend on the platform. You do not need to understand those differences to get started; the app only shows options supported by your installation.
+
+See [Installation](/installation) for platform requirements or [How Vapourkit Works](/how-it-works) if you want to understand the details behind the workflow.

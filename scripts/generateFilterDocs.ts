@@ -128,6 +128,8 @@ function buildMarkdown(groups: Map<string, VkFilter[]>, total: number): string {
     '',
     '> Auto-generated from `.vkfilter` files in the Vapourkit repo. Do not hand-edit — re-run `npm run gen:filters`.',
     '',
+    '> This page contains the complete Windows catalog. Linux exposes a curated subset whose Python and native dependencies are verified by Linux setup. Filters that require Windows-native binaries, CUDA-only plugins, Hybrid scripts, or other unverified native dependencies are hidden from the Linux filter picker. See [Platform Support](/filters/platform-support) for details.',
+    '',
     `**${total} filters** across ${groups.size} categories.`,
     '',
     '## Categories',
