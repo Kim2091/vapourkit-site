@@ -3437,7 +3437,7 @@ clip = vs_tiletools.mod(clip, modulus=64, mode="mirror")
 
 ### Pad 
 
-Pads a clip with various modes. Values apply at this point in the filter chain; later resizing or upscaling also scales the padding.
+Pads a clip with various padding modes.
 
 <details>
 <summary>Show code</summary>
@@ -3447,9 +3447,6 @@ Pads a clip with various modes. Values apply at this point in the filter chain; 
 # Modes can be mirror, wrap, repeat, fillmargins, telea, ns, fsr, black, or a custom color in 8-bit scale [128, 128, 128].
 
 import vs_tiletools
-# The values above add exactly that many pixels to the named edge at this stage.
-# If a later resize or AI model scales the clip, the visible padding scales too:
-# for example, top=4 before a 2x model becomes 8 pixels in the final output.
 clip = vs_tiletools.pad(clip, left=0, right=0, top=0, bottom=0, mode="mirror")
 ```
 
