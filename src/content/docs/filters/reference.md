@@ -1206,29 +1206,6 @@ clip = core.resize.Point(clip, format=vs.YUV444P16, matrix_s="709")
 
 </details>
 
-### FFT3D 
-
-3D frequency-domain denoising using FFT (temporal + spatial)
-
-<details>
-<summary>Show code</summary>
-
-```python
-# 3D frequency-domain denoising
-# Full Docs: https://github.com/myrsloik/VapourSynth-FFT3DFilter
-
-from vstools import vs, core
-
-sigma = 2.0  # Noise level
-bt = 3  # Temporal block size
-bw = 32  # Block width
-bh = 32  # Block height
-
-clip = core.fft3dfilter.FFT3DFilter(clip, sigma=sigma, bt=bt, bw=bw, bh=bh)
-```
-
-</details>
-
 ### KNLMeans Denoise 
 
 Non-local means denoising with GPU acceleration support
@@ -4602,4 +4579,3 @@ clip = core.std.Trim(clip, first=first_frame, last=last_frame)
 ```
 
 </details>
-
