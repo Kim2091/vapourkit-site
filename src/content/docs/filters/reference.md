@@ -7,7 +7,7 @@ description: Complete reference of bundled VapourSynth filters in Vapourkit.
 
 > This page contains the complete Windows catalog. Linux exposes a curated subset whose Python and native dependencies are verified by Linux setup. Filters that require Windows-native binaries, CUDA-only plugins, Hybrid scripts, or other unverified native dependencies are hidden from the Linux filter picker. See [Platform Support](/filters/platform-support) for details.
 
-**161 filters** across 34 categories.
+**166 filters** across 34 categories.
 
 ## Categories
 
@@ -441,9 +441,12 @@ Correct for color shift by matching the average color of the clip to that of the
 ```python
 # Full Docs: https://github.com/pifroggi/vs_colorfix?tab=readme-ov-file#average-color-fix
 
+radius = 10  # Higher is a more global color fix, lower is more local.
+
+
 import vs_colorfix
-original_clip_converted = core.resize.Point(original_clip, format=clip.format.id)
-clip = vs_colorfix.average(clip, original_clip_converted, radius=10, planes=[0, 1, 2], fast=False)
+orig_clip_converted = core.resize.Point(original_clip, format=clip.format.id)
+clip = vs_colorfix.average(clip, orig_clip_converted, radius=radius)
 ```
 
 </details>
@@ -579,17 +582,20 @@ Correct for color shift by matching the average color of the clip to that of the
 ```python
 # Full Docs: https://github.com/pifroggi/vs_colorfix?tab=readme-ov-file#wavelet-color-fix
 
-wavelets      = 4
-backend       = "tensorrt" if VK_BACKEND == "tensorrt" else "ncnn"  # DirectML is Windows-only; NCNN is Vapourkit's Linux backend.
-num_streams   = 1
-gpu_id        = 0
-engine_folder = None  # Optional TensorRT engine-cache folder.
+wavelets     = 4       # Higher is a more global color fix, lower is more local.
+backend      = "auto"  # "cpu", "tensorrt", "directml", "ncnn", or "auto" to use Vapourkit's global setting.
+num_streams  = 2       # Number of parallel GPU streams.
+gpu_id       = 0       # The GPU to use.
+
 
 import vs_colorfix
-original_clip_converted = core.resize.Point(original_clip, format=vs.YUV444PH)
-clip_converted = core.resize.Point(clip, format=vs.YUV444PH)
-clip_converted = vs_colorfix.wavelet(clip_converted, original_clip_converted, wavelets=wavelets, planes=[0, 1, 2], backend=backend, num_streams=num_streams, gpu_id=gpu_id, engine_folder=engine_folder)
-clip = core.resize.Point(clip_converted, format=clip.format.id)
+backend = backend.lower()
+backend = VK_BACKEND if backend == "auto" else backend
+float_format = clip.format.replace(sample_type=vs.FLOAT, bits_per_sample=16).id
+orig_clip_float = core.resize.Bilinear(original_clip, format=float_format)
+clip_float = core.resize.Point(clip, format=float_format)
+clip_float = vs_colorfix.wavelet(clip_float, orig_clip_float, wavelets=wavelets, backend=backend, num_streams=num_streams, gpu_id=gpu_id)
+clip = core.resize.Point(clip_float, format=clip.format.id)
 ```
 
 </details>
@@ -763,7 +769,7 @@ Deep Plug-and-Play Image Restoration is an AI spatial denoiser and deblocker.
 <summary>Show code</summary>
 
 ```python
-from vsmlrt import DPIR, DPIRModel, Backend
+from vsmlrt import DPIR, DPIRModel
 # Full Docs: https://github.com/AmusementClub/vs-mlrt/wiki/DPIR
 # Models: DPIRModel.drunet_color, DPIRModel.drunet_deblocking_color
 
@@ -771,10 +777,9 @@ model       = DPIRModel.drunet_color
 strength    = 5
 fp16        = True
 num_streams = 1
+backend     = "auto"  # "tensorrt", "directml", "ncnn", or "auto" to use Vapourkit's global setting.
 
-# Backend follows the app's backend dropdown (vk_backend is provided by
-# vapourkit). To hardcode one instead, use e.g. Backend.ORT_CUDA(fp16=fp16)
-backend = vk_backend(fp16=fp16, num_streams=num_streams)
+backend = vk_backend(backend, fp16=fp16, num_streams=num_streams)
 clip = core.resize.Bilinear(clip, format=vs.RGBH if fp16 else vs.RGBS, matrix_in_s="709")
 clip = DPIR(clip, strength=strength, model=model, backend=backend)
 clip = core.resize.Point(clip, format=vs.YUV444P16, matrix_s="709")
@@ -878,15 +883,13 @@ Three AI deinterlacers. Uses CUDA with TensorRT or CPU with NCNN/DirectML; input
 
 ```python
 # Full Docs: https://github.com/pifroggi/vs_deepdeinterlace?tab=readme-ov-file#usage
-# Available deinterlacers are 1 (DDD), 2 (DeF), and 3 (DfConvEkSA).
-# DfConvEkSA is the highest quality option, but requires its optional mmcv
-# dependency, 5 input fields, and benefits from mocomp on fast camera movement.
+tff = True             # True is top field first, false is bottom field first.
+deinterlacer = [1, 1]  # The first value is the deinterlacer for luma and the second for chroma. Available deinterlacers are 1 (DDD), 2 (DeF)).
+
 
 import vs_deepdeinterlace
-# CUDA and fp16 are used only for an NVIDIA TensorRT configuration. Linux NCNN
-# and Windows DirectML installations include CPU PyTorch instead.
 use_cuda = VK_BACKEND == "tensorrt"
-clip = vs_deepdeinterlace.YUV(clip, tff=True, deinterlacer=[1, 1], tta=[False, False], mocomp=[False, False], matrix_in_s="709", range_in_s="limited", device="cuda" if use_cuda else "cpu", fp16=use_cuda)
+clip = vs_deepdeinterlace.YUV(clip, tff=tff, deinterlacer=deinterlacer, device="cuda" if use_cuda else "cpu", fp16=use_cuda)
 ```
 
 </details>
@@ -1187,7 +1190,7 @@ Deep Plug-and-Play Image Restoration is an AI spatial denoiser and deblocker.
 <summary>Show code</summary>
 
 ```python
-from vsmlrt import DPIR, DPIRModel, Backend
+from vsmlrt import DPIR, DPIRModel
 # Full Docs: https://github.com/AmusementClub/vs-mlrt/wiki/DPIR
 # Models: DPIRModel.drunet_color, DPIRModel.drunet_deblocking_color
 
@@ -1195,10 +1198,9 @@ model       = DPIRModel.drunet_color
 strength    = 5
 fp16        = True
 num_streams = 1
+backend     = "auto"  # "tensorrt", "directml", "ncnn", or "auto" to use Vapourkit's global setting.
 
-# Backend follows the app's backend dropdown (vk_backend is provided by
-# vapourkit). To hardcode one instead, use e.g. Backend.ORT_CUDA(fp16=fp16)
-backend = vk_backend(fp16=fp16, num_streams=num_streams)
+backend = vk_backend(backend, fp16=fp16, num_streams=num_streams)
 clip = core.resize.Bilinear(clip, format=vs.RGBH if fp16 else vs.RGBS, matrix_in_s="709")
 clip = DPIR(clip, strength=strength, model=model, backend=backend)
 clip = core.resize.Point(clip, format=vs.YUV444P16, matrix_s="709")
@@ -1476,7 +1478,7 @@ AI frame interpolation to increase frame rate.
 <summary>Show code</summary>
 
 ```python
-from vsmlrt import RIFE, RIFEModel, Backend
+from vsmlrt import RIFE, RIFEModel
 from vstools import sc_detect
 import vs_tiletools
 
@@ -1486,10 +1488,9 @@ multi = 2                # Frame multiplier (2=double FPS, 3=triple, etc.)
 fp16  = True             # FP16 precision
 use_sc_detect = True     # Enable scene change detection for better quality
 sc_threshold = 0.1       # Scene change detection threshold (higher = less sensitive)
+backend = "auto"         # "tensorrt", "directml", "ncnn", or "auto" to use Vapourkit's global setting.
 
-# Backend follows the app's backend dropdown (vk_backend is provided by
-# vapourkit). To hardcode one instead, use e.g. Backend.ORT_DML(fp16=fp16)
-backend = vk_backend(fp16=fp16)
+backend = vk_backend(backend, fp16=fp16)
 
 # Scene detection (improves RIFE quality by preventing interpolation across scene changes)
 if use_sc_detect:
@@ -1607,10 +1608,14 @@ Extends a clip using various padding modes.
 
 ```python
 # Full Docs: https://github.com/pifroggi/vs_tiletools?tab=readme-ov-file#tpad
-# Padding mode can be mirror, repeat, black, or a custom color in 8-bit scale [128, 128, 128].
+
+# Set pad amounts here:
+start = 0
+end   = 0
+mode  = "mirror" # Mode can be mirror, loop, repeat, black, or a custom color in 8-bit scale [128, 128, 128].
 
 import vs_tiletools
-clip = vs_tiletools.extend(clip, start=0, end=0, mode="mirror")
+clip = vs_tiletools.extend(clip, start=start, end=end, mode=mode)
 ```
 
 </details>
@@ -1807,8 +1812,16 @@ Very high quality and realistic grain generator that animates the grain, adds op
 ```python
 # Full Docs: https://github.com/pifroggi/vs_grain
 
+iterations  = 800  # Higher is more realistic, but slower.
+size        = 0.3  # Average size of grain particles.
+deviation   = 0.0  # size variation of grain particles. High values cause bad outputs, use with caution.
+blur        = 0.8  # Generates smoother grain.
+opacity     = [0.1, 0.1, 0.1]  # Grain opacity for [shadows, midtones, highlights].
+num_streams = 1  # Number of parallel GPU streams.
+
+
 import vs_grain
-clip = vs_grain.fgrain(clip, iterations=800, size=0.5, deviation=0.0, blur=0.9, opacity=0.1, num_streams=1)
+clip = vs_grain.fgrain(clip, iterations=iterations, size=size, deviation=deviation, blur=blur, opacity=opacity, num_streams=num_streams)
 ```
 
 </details>
@@ -3365,8 +3378,29 @@ Crops a clip by the specified pixel amount.
 <summary>Show code</summary>
 
 ```python
+# Full Docs: https://www.vapoursynth.com/doc/functions/video/crop_cropabs.html#std.Crop
+
+# Set crop amounts here:
+left   = 0
+right  = 0
+top    = 0
+bottom = 0
+
+
+clip = core.std.Crop(clip, left=left, right=right, top=top, bottom=bottom)
+```
+
+</details>
+
+### Crop (Auto) 
+
+Automatically crops padding added by the Pad or Modulus filters.
+
+<details>
+<summary>Show code</summary>
+
+```python
 # Full Docs: https://github.com/pifroggi/vs_tiletools?tab=readme-ov-file#crop
-# If only "clip" is provided, this will automatically crop what was added via the Pad or the Modulus filter, even if the clip was since resized (after upscaling for example).
 
 import vs_tiletools
 clip = vs_tiletools.crop(clip)
@@ -3402,12 +3436,12 @@ Pads or crops a clip so width and height are multiples of the given modulus. Use
 
 ```python
 # Full Docs: https://github.com/pifroggi/vs_tiletools?tab=readme-ov-file#mod
-# Modes to reach the next upper multiple via padding can be mirror, wrap, repeat,
-# fillmargins, telea, ns, fsr, black, a custom color in 8-bit scale [128, 128, 128],
-# or discard to crop to the next lower multiple.
+
+modulus = 64       # Makes the resolution a multiple of this.
+mode    = "mirror" # Modes to pad to the next upper multiple via can be mirror, wrap, repeat, fillmargins, fixborders, telea, ns, fsr, black, a custom color in 8-bit scale [128, 128, 128]. Or discard to crop to the next lower multiple.
 
 import vs_tiletools
-clip = vs_tiletools.mod(clip, modulus=64, mode="mirror")
+clip = vs_tiletools.mod(clip, modulus=modulus, mode=mode)
 ```
 
 </details>
@@ -3421,10 +3455,17 @@ Pads a clip with various padding modes.
 
 ```python
 # Full Docs: https://github.com/pifroggi/vs_tiletools?tab=readme-ov-file#pad
-# Modes can be mirror, wrap, repeat, fillmargins, telea, ns, fsr, black, or a custom color in 8-bit scale [128, 128, 128].
+
+# Set pad amounts here:
+left   = 0
+right  = 0
+top    = 0
+bottom = 0
+mode   = "mirror" # Modes can be mirror, wrap, repeat, fillmargins, fixborders, telea, ns, fsr, black, or a custom color in 8-bit scale [128, 128, 128].
+
 
 import vs_tiletools
-clip = vs_tiletools.pad(clip, left=0, right=0, top=0, bottom=0, mode="mirror")
+clip = vs_tiletools.pad(clip, left=left, right=right, top=top, bottom=bottom, mode=mode)
 ```
 
 </details>
@@ -3650,19 +3691,18 @@ Adds Temporal Coherence to Single Image AI Upscaling Models. More accurate and f
 ```python
 # Full Docs: https://github.com/pifroggi/vs_temporalfix#temporalfix-ai-model
 
-strength    = 2.0         # Suppression strength, 0.0-3.0. Higher = more aggressive, may oversmooth small motion.
-tiles       = 1           # More tiles = less VRAM, slower. Only increase on low-end hardware.
-num_streams = 1           # Parallel TensorRT streams. Higher can be faster on high-end GPUs. TensorRT backend only.
-exclude     = None        # Optionally exclude scenes, e.g. "[10 20] [600 900]"
-engine_folder = None      # Optional TensorRT engine-cache folder.
-# TemporalFix supports CPU, CUDA, and TensorRT. It has no DirectML backend, so
-# use CPU when Vapourkit's DirectML backend is selected.
-backend = "tensorrt" if VK_BACKEND == "tensorrt" else "cpu"
+strength    = 2.0   # Suppression strength from 0.0-3.0. Higher is more aggressive, but may oversmooth.
+exclude     = None  # Optionally exclude frame ranges, e.g. "[10 20] [600 900]"
+backend     = "auto"  # "cpu", "cuda", "tensorrt", or "auto" to use Vapourkit's global setting.
+tiles       = 1     # More tiles reduces VRAM usage, but slower. Only useful on low-end hardware.
+num_streams = 1     # Parallel TensorRT streams.
 
 
 import vs_temporalfix
+backend = backend.lower()
+backend = ("tensorrt" if VK_BACKEND == "tensorrt" else "cpu") if backend == "auto" else backend
 clip = core.resize.Bilinear(clip, format=vs.RGBH, matrix_in_s="709")
-clip = vs_temporalfix.model(clip, strength=strength, exclude=exclude, backend=backend, tiles=tiles, num_streams=num_streams, engine_folder=engine_folder)
+clip = vs_temporalfix.model(clip, strength=strength, exclude=exclude, backend=backend, tiles=tiles, num_streams=num_streams)
 clip = core.resize.Point(clip, format=vs.YUV444P16, matrix_s="709")
 ```
 
@@ -3679,15 +3719,43 @@ Adds Temporal Coherence to Single Image AI Upscaling Models. This is the older c
 # Full Docs: https://github.com/pifroggi/vs_temporalfix#temporalfix-classic
 # Increase strength if the effect is not strong enough. Check the docs for a full explanation.
 
-strength = 500
-tr       = 6
-denoise  = False
-exclude  = None
-debug    = False
+strength = 500    # Suppression strength. Higher is more aggressive, but may oversmooth or ghost.
+tr       = 6      # Number of frames to average over.
+denoise  = False  # Removes grain and low frequency noise/flicker left over by the main processing step. Only enable if these issues actually exist!
+exclude  = None   # Optionally exclude frame ranges, e.g. "[10 20] [600 900]"
+debug    = False  # Shows areas that will not be fixed in pink.
 
 
 import vs_temporalfix
 clip = vs_temporalfix.classic(clip, strength=strength, tr=tr, denoise=denoise, exclude=exclude, debug=debug)
+```
+
+</details>
+
+### Undistort 
+
+Removes distortions, turbulance, heat haze, or similar. TensorRT is faster, but has less controls.
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Full Docs: https://github.com/pifroggi/vs_undistort?tab=readme-ov-file#usage
+
+temp_window    = 10  # Larger means better temporal averaging, but higher VRAM usage.
+window_overlap = 0   # Overlap between temporal windows. Larger is slower. Increase if jumps/hitches between windows are noticeable.
+interpolation  = "bicubic"  # "bicubic" is sharper, "bilinear" is softer.
+backend        = "auto"  # "cpu", "cuda", "tensorrt", or "auto" to use Vapourkit's global setting.
+tiles          = 1   # More tiles reduces VRAM usage, but worsens spatial averaging.
+overlap        = 8   # Tile overlap. Increase if seams between tiles are noticable.
+
+
+from vs_undistort import vs_undistort
+backend = backend.lower()
+backend = ("tensorrt" if VK_BACKEND == "tensorrt" else "cpu") if backend == "auto" else backend
+clip = core.resize.Bilinear(clip, format=vs.RGBH, matrix_in_s="709")
+clip = vs_undistort(clip, temp_window=temp_window, window_overlap=window_overlap, tiles=tiles, overlap=overlap, interpolation=interpolation, backend=backend)
+clip = core.resize.Point(clip, format=vs.YUV444P16, matrix_s="709")
 ```
 
 </details>
@@ -3706,12 +3774,12 @@ temp_window   = 10
 tiles         = 1
 overlap       = 8
 interpolation = "bilinear"
-# Vapourkit's TensorRT backend is NVIDIA/CUDA-only. NCNN (the Linux default)
-# and DirectML do not provide CUDA PyTorch, so use the installed CPU wheel.
-backend       = "cuda" if VK_BACKEND == "tensorrt" else "cpu"
+backend       = "auto"  # "cpu", "cuda", or "auto" to use Vapourkit's global setting.
 
 
 from vs_undistort import vs_undistort
+backend = backend.lower()
+backend = ("cuda" if VK_BACKEND == "tensorrt" else "cpu") if backend == "auto" else backend
 clip = core.resize.Bilinear(clip, format=vs.RGBH, matrix_in_s=709)
 clip = vs_undistort(clip, temp_window=temp_window, tiles=tiles, overlap=overlap, interpolation=interpolation, backend=backend)
 clip = core.resize.Point(clip, format=vs.YUV444P16, matrix_s=709)
@@ -3735,12 +3803,12 @@ overlap       = 8
 interpolation = "bicubic"
 num_streams   = 1
 engine_folder = None  # Optional TensorRT engine-cache folder.
-# Undistort supports CPU, CUDA, and TensorRT. It has no DirectML backend, so
-# use CPU when Vapourkit's DirectML backend is selected.
-backend = "tensorrt" if VK_BACKEND == "tensorrt" else "cpu"
+backend       = "auto"  # "cpu", "cuda", "tensorrt", or "auto" to use Vapourkit's global setting.
 
 
 from vs_undistort import vs_undistort
+backend = backend.lower()
+backend = ("tensorrt" if VK_BACKEND == "tensorrt" else "cpu") if backend == "auto" else backend
 clip = core.resize.Bilinear(clip, format=vs.RGBH, matrix_in_s=709)
 clip = vs_undistort(clip, temp_window=temp_window, tiles=tiles, overlap=overlap, interpolation=interpolation, backend=backend, num_streams=num_streams, engine_folder=engine_folder)
 clip = core.resize.Point(clip, format=vs.YUV444P16, matrix_s=709)
@@ -3930,6 +3998,34 @@ clip = Stab(clip, range=1, dxmax=4, dymax=4, mirror=0)
 
 </details>
 
+### Undistort 
+
+Removes distortions, turbulance, heat haze, or similar. TensorRT is faster, but has less controls.
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Full Docs: https://github.com/pifroggi/vs_undistort?tab=readme-ov-file#usage
+
+temp_window    = 10  # Larger means better temporal averaging, but higher VRAM usage.
+window_overlap = 0   # Overlap between temporal windows. Larger is slower. Increase if jumps/hitches between windows are noticeable.
+interpolation  = "bicubic"  # "bicubic" is sharper, "bilinear" is softer.
+backend        = "auto"  # "cpu", "cuda", "tensorrt", or "auto" to use Vapourkit's global setting.
+tiles          = 1   # More tiles reduces VRAM usage, but worsens spatial averaging.
+overlap        = 8   # Tile overlap. Increase if seams between tiles are noticable.
+
+
+from vs_undistort import vs_undistort
+backend = backend.lower()
+backend = ("tensorrt" if VK_BACKEND == "tensorrt" else "cpu") if backend == "auto" else backend
+clip = core.resize.Bilinear(clip, format=vs.RGBH, matrix_in_s="709")
+clip = vs_undistort(clip, temp_window=temp_window, window_overlap=window_overlap, tiles=tiles, overlap=overlap, interpolation=interpolation, backend=backend)
+clip = core.resize.Point(clip, format=vs.YUV444P16, matrix_s="709")
+```
+
+</details>
+
 ### Undistort (PyTorch) 
 
 Removes distortions, turbulence, heat haze, or similar. Uses CUDA with TensorRT or CPU with NCNN/DirectML.
@@ -3944,12 +4040,12 @@ temp_window   = 10
 tiles         = 1
 overlap       = 8
 interpolation = "bilinear"
-# Vapourkit's TensorRT backend is NVIDIA/CUDA-only. NCNN (the Linux default)
-# and DirectML do not provide CUDA PyTorch, so use the installed CPU wheel.
-backend       = "cuda" if VK_BACKEND == "tensorrt" else "cpu"
+backend       = "auto"  # "cpu", "cuda", or "auto" to use Vapourkit's global setting.
 
 
 from vs_undistort import vs_undistort
+backend = backend.lower()
+backend = ("cuda" if VK_BACKEND == "tensorrt" else "cpu") if backend == "auto" else backend
 clip = core.resize.Bilinear(clip, format=vs.RGBH, matrix_in_s=709)
 clip = vs_undistort(clip, temp_window=temp_window, tiles=tiles, overlap=overlap, interpolation=interpolation, backend=backend)
 clip = core.resize.Point(clip, format=vs.YUV444P16, matrix_s=709)
@@ -3973,12 +4069,12 @@ overlap       = 8
 interpolation = "bicubic"
 num_streams   = 1
 engine_folder = None  # Optional TensorRT engine-cache folder.
-# Undistort supports CPU, CUDA, and TensorRT. It has no DirectML backend, so
-# use CPU when Vapourkit's DirectML backend is selected.
-backend = "tensorrt" if VK_BACKEND == "tensorrt" else "cpu"
+backend       = "auto"  # "cpu", "cuda", "tensorrt", or "auto" to use Vapourkit's global setting.
 
 
 from vs_undistort import vs_undistort
+backend = backend.lower()
+backend = ("tensorrt" if VK_BACKEND == "tensorrt" else "cpu") if backend == "auto" else backend
 clip = core.resize.Bilinear(clip, format=vs.RGBH, matrix_in_s=709)
 clip = vs_undistort(clip, temp_window=temp_window, tiles=tiles, overlap=overlap, interpolation=interpolation, backend=backend, num_streams=num_streams, engine_folder=engine_folder)
 clip = core.resize.Point(clip, format=vs.YUV444P16, matrix_s=709)
@@ -4089,19 +4185,18 @@ Adds Temporal Coherence to Single Image AI Upscaling Models. More accurate and f
 ```python
 # Full Docs: https://github.com/pifroggi/vs_temporalfix#temporalfix-ai-model
 
-strength    = 2.0         # Suppression strength, 0.0-3.0. Higher = more aggressive, may oversmooth small motion.
-tiles       = 1           # More tiles = less VRAM, slower. Only increase on low-end hardware.
-num_streams = 1           # Parallel TensorRT streams. Higher can be faster on high-end GPUs. TensorRT backend only.
-exclude     = None        # Optionally exclude scenes, e.g. "[10 20] [600 900]"
-engine_folder = None      # Optional TensorRT engine-cache folder.
-# TemporalFix supports CPU, CUDA, and TensorRT. It has no DirectML backend, so
-# use CPU when Vapourkit's DirectML backend is selected.
-backend = "tensorrt" if VK_BACKEND == "tensorrt" else "cpu"
+strength    = 2.0   # Suppression strength from 0.0-3.0. Higher is more aggressive, but may oversmooth.
+exclude     = None  # Optionally exclude frame ranges, e.g. "[10 20] [600 900]"
+backend     = "auto"  # "cpu", "cuda", "tensorrt", or "auto" to use Vapourkit's global setting.
+tiles       = 1     # More tiles reduces VRAM usage, but slower. Only useful on low-end hardware.
+num_streams = 1     # Parallel TensorRT streams.
 
 
 import vs_temporalfix
+backend = backend.lower()
+backend = ("tensorrt" if VK_BACKEND == "tensorrt" else "cpu") if backend == "auto" else backend
 clip = core.resize.Bilinear(clip, format=vs.RGBH, matrix_in_s="709")
-clip = vs_temporalfix.model(clip, strength=strength, exclude=exclude, backend=backend, tiles=tiles, num_streams=num_streams, engine_folder=engine_folder)
+clip = vs_temporalfix.model(clip, strength=strength, exclude=exclude, backend=backend, tiles=tiles, num_streams=num_streams)
 clip = core.resize.Point(clip, format=vs.YUV444P16, matrix_s="709")
 ```
 
@@ -4118,11 +4213,11 @@ Adds Temporal Coherence to Single Image AI Upscaling Models. This is the older c
 # Full Docs: https://github.com/pifroggi/vs_temporalfix#temporalfix-classic
 # Increase strength if the effect is not strong enough. Check the docs for a full explanation.
 
-strength = 500
-tr       = 6
-denoise  = False
-exclude  = None
-debug    = False
+strength = 500    # Suppression strength. Higher is more aggressive, but may oversmooth or ghost.
+tr       = 6      # Number of frames to average over.
+denoise  = False  # Removes grain and low frequency noise/flicker left over by the main processing step. Only enable if these issues actually exist!
+exclude  = None   # Optionally exclude frame ranges, e.g. "[10 20] [600 900]"
+debug    = False  # Shows areas that will not be fixed in pink.
 
 
 import vs_temporalfix
@@ -4143,11 +4238,15 @@ Splits each frame into tiles of fixed dimensions.
 
 ```python
 # Full Docs: https://github.com/pifroggi/vs_tiletools?tab=readme-ov-file#tile
-# Padding can be mirror, wrap, repeat, fillmargins, telea, ns, fsr, black,
-# a custom color in 8-bit scale [128, 128, 128], or discard to remove tiles that are too small.
+
+width   = 256      # Width of each tile.
+height  = 256      # Height of each tile.
+overlap = 16       # Tile overlap.
+padding = "mirror" # Padding can be mirror, wrap, repeat, fillmargins, fixborders, telea, ns, fsr, black, a custom color in 8-bit scale [128, 128, 128], or discard to remove tiles that are too small.
+
 
 import vs_tiletools
-clip = vs_tiletools.tile(clip, width=256, height=256, overlap=16, padding="mirror")
+clip = vs_tiletools.tile(clip, width=width, height=height, overlap=overlap, padding=padding)
 ```
 
 </details>
@@ -4161,10 +4260,12 @@ Automatically reassembles a clip tiled with the Tile filter, even if tiles were 
 
 ```python
 # Full Docs: https://github.com/pifroggi/vs_tiletools?tab=readme-ov-file#untile
-# If fade is True, the overlap will be used to feather/blend between the tiles to remove visible seams. If False, it will simply be cropped.
+
+fade = True  # If fade is True, the overlap from the Tile filter will be used to feather/blend between the tiles to remove visible seams. If False, it will simply be cropped.
+
 
 import vs_tiletools
-clip = vs_tiletools.untile(clip, fade=True)
+clip = vs_tiletools.untile(clip, fade=fade)
 ```
 
 </details>
@@ -4555,6 +4656,60 @@ clip_a = clip
 clip_b = clip  # Replace with your second clip
 
 clip = core.std.Splice([clip_a, clip_b])
+```
+
+</details>
+
+### Trim (Auto) 
+
+Automatically trims a clip that has been extended by the Temporal Pad filter.
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Full Docs: https://github.com/pifroggi/vs_tiletools#trim
+
+import vs_tiletools
+clip = vs_tiletools.trim(clip)
+```
+
+</details>
+
+### Trim (by frame numbers) 
+
+Trims clip to keep only specified frame range.
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Full Docs: https://www.vapoursynth.com/doc/functions/video/trim.html
+
+first = 0     # First frame to keep
+last  = 1000  # Last frame to keep
+
+
+clip = core.std.Trim(clip, first=first, last=last)
+```
+
+</details>
+
+### Trim (by length) 
+
+Trims clip to keep only specified frame range.
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Full Docs: https://www.vapoursynth.com/doc/functions/video/trim.html
+
+first  = 0     # First frame to keep.
+length = 1000  # Length of clip after trimming.
+
+
+clip = core.std.Trim(clip, first=first, length=length)
 ```
 
 </details>
