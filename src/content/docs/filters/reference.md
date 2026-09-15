@@ -7,7 +7,7 @@ description: Complete reference of bundled VapourSynth filters in Vapourkit.
 
 > This page contains the complete Windows catalog. Linux exposes a curated subset whose Python and native dependencies are verified by Linux setup. Filters that require Windows-native binaries, CUDA-only plugins, Hybrid scripts, or other unverified native dependencies are hidden from the Linux filter picker. See [Platform Support](/filters/platform-support) for details.
 
-**166 filters** across 34 categories.
+**161 filters** across 34 categories.
 
 ## Categories
 
@@ -251,25 +251,6 @@ clip = FixChromaBleedingMod(clip, cx=4, cy=4, thr=4.0, strength=0.8, blur=False)
 
 </details>
 
-### Rainbow Smooth 
-
-Removes rainbow artifacts using edge-aware chroma smoothing
-
-<details>
-<summary>Show code</summary>
-
-```python
-# Remove rainbow artifacts with edge-aware smoothing
-# From hybrid_filters/RainbowSmooth.py
-import sys
-sys.path.insert(0, r'hybrid_filters')
-from RainbowSmooth import RainbowSmooth
-
-clip = RainbowSmooth(clip, radius=3, lthresh=0, hthresh=220, mask="original")
-```
-
-</details>
-
 
 ## Cleaning
 
@@ -346,8 +327,15 @@ Removes dot crawl artifacts from video
 import sys
 sys.path.insert(0, r'hybrid_filters')
 from decrawl import LUTDeCrawl
+from vstools import depth
 
-clip = LUTDeCrawl(clip, ythresh=10, cthresh=10, maxdiff=50, scnchg=25, usemaxdiff=True)
+# LUTDeCrawl only accepts 8-10 bit YUV, but the pipeline always hands filter
+# steps 16-bit YUV. 10 rather than 8: the round trip quantises the whole
+# picture, not just the dot crawl being removed, so it is worth taking the
+# most the filter will accept.
+src_depth = clip.format.bits_per_sample
+clip = LUTDeCrawl(depth(clip, 10), ythresh=10, cthresh=10, maxdiff=50, scnchg=25, usemaxdiff=True)
+clip = depth(clip, src_depth)
 ```
 
 </details>
@@ -367,44 +355,6 @@ sys.path.insert(0, r'hybrid_filters')
 from derainbow import LUTDeRainbow
 
 clip = LUTDeRainbow(clip, cthresh=10, ythresh=10, y=True, linkUV=True)
-```
-
-</details>
-
-### Remove Dirt 
-
-Removes dirt and specks from video using temporal cleaning
-
-<details>
-<summary>Show code</summary>
-
-```python
-# Remove dirt and specks from video
-# From hybrid_filters/removeDirt.py
-import sys
-sys.path.insert(0, r'hybrid_filters')
-from removeDirt import RemoveDirt
-
-clip = RemoveDirt(clip, repmode=16, remgrainmode=17, limit=10)
-```
-
-</details>
-
-### Remove Dirt MC 
-
-Removes dirt using motion-compensated temporal cleaning
-
-<details>
-<summary>Show code</summary>
-
-```python
-# Motion-compensated dirt removal
-# From hybrid_filters/removeDirt.py
-import sys
-sys.path.insert(0, r'hybrid_filters')
-from removeDirt import RemoveDirtMC
-
-clip = RemoveDirtMC(clip, limit=6, repmode=16, remgrainmode=17, block_size=8, block_over=4, gpu=False)
 ```
 
 </details>
@@ -430,6 +380,197 @@ clip = Vinverse(clip, sstr=2.7, amnt=255, chroma=True, scl=0.25)
 
 
 ## Color Modification
+
+### Apply LUT _(bundled template)_
+
+Experimental. Applies a 3D colour lookup table (.cube). Import one through the grading dock, or point this at a file yourself. Uses the timecube plugin; without it a slower fallback runs, which costs about 2GB more memory at 4K.
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Applies a 3D LUT, preferring the timecube plugin and falling back to one
+# built out of akarin.Expr when it is absent.
+#
+# timecube is the right tool and setup installs it from PyPI on both
+# platforms: one node, a table that costs 400KB whatever the resolution, and
+# native SIMD. The fallback is for an install that predates it, or one where
+# the wheel could not be fetched — a slow look beats a broken one.
+#
+# Both paths agree to 1.2e-7. timecube's interp=1 is tetrahedral and is
+# deliberately left alone, because taking it would make the render depend on
+# which plugin happened to be installed.
+#
+# The fallback is worth understanding before relying on it. akarin.Expr can
+# read a pixel at a computed coordinate, so the table travels as a companion
+# clip tiled one size x size block per blue slice, k blocks across, and the
+# expression takes eight taps out of it per pixel. It is correct to 5e-7
+# against src/utils/lut.ts sampleLut(), but the companion clips are the size
+# of the picture and the plane split doubles the node count, so measured it
+# roughly doubles pipeline memory: +537MB at 1080p and +2.1GB at 4K, where it
+# also drops throughput from 69 to 10 fps. Fine for 1080p, painful for 4K.
+
+lut_path = {{lut_path}}
+strength = {{strength}}
+
+def _check_lut_path(path):
+    # Reached with an empty path whenever someone picks Apply LUT out of the
+    # filter list rather than importing one, and with a stale path whenever a
+    # LUT is moved. Both are ordinary, so both say so rather than surfacing a
+    # traceback from open() — or, worse, from inside the plugin.
+    import os
+    if not path:
+        raise ValueError("Apply LUT has no file chosen. Import a LUT, or set lut_path.")
+    if not os.path.isfile(path):
+        raise ValueError("Apply LUT cannot find " + str(path) + " any more.")
+
+def _is_number(text):
+    try:
+        float(text)
+        return True
+    except ValueError:
+        return False
+
+def _read_cube(path):
+    size = None
+    dmin = [0.0, 0.0, 0.0]
+    dmax = [1.0, 1.0, 1.0]
+    rows = []
+    with open(path, "r", encoding="utf-8", errors="replace") as handle:
+        for line in handle:
+            line = line.split("#")[0].strip()
+            if not line:
+                continue
+            fields = line.split()
+            head = fields[0].upper()
+            if head == "LUT_3D_SIZE":
+                size = int(fields[1])
+            elif head == "LUT_1D_SIZE":
+                raise ValueError(
+                    "That is a 1D cube. Importing it through the grading dock "
+                    "lifts it onto a 3D lattice; the timecube plugin also reads "
+                    "1D directly, but this fallback path does not.")
+            elif head == "DOMAIN_MIN":
+                dmin = [float(v) for v in fields[1:4]]
+            elif head == "DOMAIN_MAX":
+                dmax = [float(v) for v in fields[1:4]]
+            elif not _is_number(fields[0]):
+                # TITLE, and anything else a .cube may legally carry that this
+                # reader has no use for. Skipped rather than pushed at float(),
+                # which is what turned a LUT_3D_INPUT_RANGE line - or any junk
+                # file - into a traceback instead of a message.
+                continue
+            elif len(fields) < 3:
+                raise ValueError("A table row needs three values; found %d." % len(fields))
+            else:
+                rows.append((float(fields[0]), float(fields[1]), float(fields[2])))
+    if size is None:
+        raise ValueError("No LUT_3D_SIZE in " + str(path) + " - that is not a 3D .cube.")
+    if size < 2 or size > 256:
+        raise ValueError("LUT_3D_SIZE %d is outside the 2..256 a cube allows." % size)
+    if len(rows) != size ** 3:
+        raise ValueError("LUT_3D_SIZE %d needs %d rows, found %d." % (size, size ** 3, len(rows)))
+    # .cube runs red fastest. Indexed here as [channel][blue][green][red].
+    lat = np.zeros((3, size, size, size), dtype=np.float32)
+    at = 0
+    for _b in range(size):
+        for _g in range(size):
+            for _r in range(size):
+                row = rows[at]
+                at += 1
+                lat[0, _b, _g, _r] = row[0]
+                lat[1, _b, _g, _r] = row[1]
+                lat[2, _b, _g, _r] = row[2]
+    return size, lat, dmin, dmax
+
+def _lf(v):
+    return "{:.8f}".format(float(v))
+
+def _lut_expr(size, k, dmin, dmax):
+    n1 = size - 1
+    parts = []
+    for i, src in enumerate(("x", "y", "z")):
+        parts.append("{s} {mn} - {sp} / 0 max 1 min {n1} * i{i}!".format(
+            s=src, mn=_lf(dmin[i]), sp=_lf(max(1e-9, dmax[i] - dmin[i])), n1=n1, i=i))
+    for i in range(3):
+        parts.append("i{i}@ floor l{i}! l{i}@ 1 + {n1} min h{i}! i{i}@ l{i}@ - f{i}!".format(i=i, n1=n1))
+    tap = 0
+    for bz in ("l2", "h2"):
+        for gy in ("l1", "h1"):
+            for rx in ("l0", "h0"):
+                parts.append(
+                    "{bz}@ {k} % {n} * {rx}@ + {bz}@ {k} / trunc {n} * {gy}@ + a[] t{tap}!".format(
+                        bz=bz, gy=gy, rx=rx, k=k, n=size, tap=tap))
+                tap += 1
+    for i in range(4):
+        parts.append("t{a}@ 1 f0@ - * t{b}@ f0@ * + p{i}!".format(a=i * 2, b=i * 2 + 1, i=i))
+    parts.append("p0@ 1 f1@ - * p1@ f1@ * + q0!")
+    parts.append("p2@ 1 f1@ - * p3@ f1@ * + q1!")
+    parts.append("q0@ 1 f2@ - * q1@ f2@ * +")
+    return " ".join(parts)
+
+strength = min(1.0, max(0.0, float(strength)))
+if strength > 0.0:
+    _check_lut_path(lut_path)
+
+    _source_format = clip.format.id
+    _source_is_rgb = clip.format.color_family == vs.RGB
+    if _source_is_rgb:
+        _rgb = core.resize.Bicubic(clip, format=vs.RGBS)
+    else:
+        _rgb = core.resize.Bicubic(clip, format=vs.RGBS, matrix_in_s="709")
+
+    if hasattr(core, "timecube"):
+        # One node, and a table that costs the same at 4K as at 480p.
+        _looked = core.timecube.Cube(_rgb, cube=lut_path)
+    elif hasattr(core, "akarin"):
+        import numpy as np
+
+        _size, _lat, _dmin, _dmax = _read_cube(lut_path)
+
+        _k = max(1, min(_size, _rgb.width // _size))
+        _tile_rows = -(-_size // _k)
+        _pad_w = max(0, _k * _size - _rgb.width)
+        _pad_h = max(0, _tile_rows * _size - _rgb.height)
+        _work = _rgb
+        if _pad_w or _pad_h:
+            _work = core.std.AddBorders(_work, right=_pad_w, bottom=_pad_h)
+        _cw, _ch = _work.width, _work.height
+
+        def _table_clip(channel):
+            img = np.zeros((_ch, _cw), dtype=np.float32)
+            for _b in range(_size):
+                _ty, _tx = divmod(_b, _k)
+                img[_ty * _size:(_ty + 1) * _size, _tx * _size:(_tx + 1) * _size] = _lat[channel, _b]
+            base = core.std.BlankClip(width=_cw, height=_ch, format=vs.GRAYS, length=1, color=0.0)
+            def _fill(n, f, d=img):
+                fo = f.copy()
+                np.copyto(np.asarray(fo[0]), d)
+                return fo
+            # Built once and looped, so the table is not rebuilt per frame.
+            return core.std.Loop(core.std.ModifyFrame(base, base, _fill), times=_work.num_frames)
+
+        _planes = [core.std.ShufflePlanes(_work, i, vs.GRAY) for i in range(3)]
+        _expr = _lut_expr(_size, _k, _dmin, _dmax)
+        _out = [core.akarin.Expr(_planes + [_table_clip(c)], _expr) for c in range(3)]
+        _looked = core.std.ShufflePlanes(_out, [0, 0, 0], vs.RGB)
+        if _pad_w or _pad_h:
+            _looked = core.std.Crop(_looked, right=_pad_w, bottom=_pad_h)
+    else:
+        raise RuntimeError(
+            "Apply LUT needs either the timecube or the akarin plugin, and neither is installed.")
+
+    # One mix for both paths, so strength means the same thing either way.
+    if strength < 1.0:
+        _looked = core.std.Merge(_rgb, _looked, weight=strength)
+
+    if _source_is_rgb:
+        clip = core.resize.Bicubic(_looked, format=_source_format)
+    else:
+        clip = core.resize.Bicubic(_looked, format=_source_format, matrix_s="709")
+```
+
+</details>
 
 ### Average Color Fix 
 
@@ -485,6 +626,160 @@ clip = core.std.Expr(clip, expr=f"x {min_value} max {max_value} min")
 
 </details>
 
+### Color Grade _(bundled template)_
+
+Lift, gamma, gain and offset trackballs with temperature, tint, contrast, saturation and hue. Open the grading dock from the filter, or edit the numbers here.
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Lift / gamma / gain / offset, per channel, in Rec.709 RGB.
+#
+# These public variables are supplied by Vapourkit's grading dock. They can
+# still be edited by hand here, and the dock will read whatever it finds.
+#
+# Operation order matches DaVinci Resolve, and matches src/utils/colorGrade.ts
+# so the live preview and this render agree:
+#
+#   per channel:  offset -> one lift/gain ramp (incl. white balance) -> gamma
+#                 -> contrast about the pivot -> brightness
+#   across:       hue rotation -> saturation
+
+lift   = ({{lift_r}},   {{lift_g}},   {{lift_b}},   {{lift_m}})
+gamma  = ({{gamma_r}},  {{gamma_g}},  {{gamma_b}},  {{gamma_m}})
+gain   = ({{gain_r}},   {{gain_g}},   {{gain_b}},   {{gain_m}})
+offset = ({{offset_r}}, {{offset_g}}, {{offset_b}}, {{offset_m}})
+
+temperature = {{temperature}}   # Kelvin offset, -4000 .. 4000
+tint        = {{tint}}          # green vs magenta, -100 .. 100
+contrast    = {{contrast}}
+pivot       = {{pivot}}
+saturation  = {{saturation}}
+hue         = {{hue}}           # degrees
+brightness  = {{brightness}}
+
+import math
+
+LUMA_R, LUMA_G, LUMA_B = 0.2126, 0.7152, 0.0722
+
+def _clamp(value, low, high):
+    return min(max(value, low), high)
+
+def _f(value):
+    # std.Expr parses decimals, not scientific notation, so never hand it 1e-05.
+    return "{:.8f}".format(float(value))
+
+# Temperature and tint as per-channel gains. Full travel is a 20% swing.
+_t = _clamp(temperature / 4000.0, -1.0, 1.0) * 0.2
+_n = _clamp(tint / 100.0, -1.0, 1.0) * 0.2
+white = (1.0 + _t, 1.0 + _n, 1.0 - _t)
+
+# Fold the master into each channel once, so the expressions stay short.
+_offset = tuple(offset[i] + offset[3] for i in range(3))
+_gain = tuple(gain[i] * gain[3] * white[i] for i in range(3))
+_lift = tuple(lift[i] + lift[3] for i in range(3))
+# Black lands on lift, white lands on gain. Slope carries both.
+_slope = tuple(_gain[i] - _lift[i] for i in range(3))
+_inv_gamma = tuple(1.0 / max(0.01, gamma[i] * gamma[3]) for i in range(3))
+
+_is_neutral = (
+    _offset == (0.0, 0.0, 0.0)
+    and _gain == (1.0, 1.0, 1.0)
+    and _lift == (0.0, 0.0, 0.0)
+    and _inv_gamma == (1.0, 1.0, 1.0)
+    and contrast == 1.0
+    and brightness == 0.0
+    and saturation == 1.0
+    and hue == 0.0
+)
+
+if not _is_neutral:
+    _source_format = clip.format.id
+    _source_is_rgb = clip.format.color_family == vs.RGB
+
+    # resize refuses matrix_in_s when the input is already RGB.
+    if _source_is_rgb:
+        _graded = core.resize.Bicubic(clip, format=vs.RGBS)
+    else:
+        _graded = core.resize.Bicubic(clip, format=vs.RGBS, matrix_in_s="709")
+
+    # Per-channel stage. One ramp: v * (gain - lift) + lift puts black on
+    # lift and white on gain without either dragging the other.
+    #
+    # Only the lower bound is clamped before pow, which needs a non-negative
+    # base. The clip is RGBS, so anything above 1 is real headroom that gamma
+    # and contrast can still pull back; flattening it here threw that away and
+    # left the scopes unable to show the difference between just-landed and
+    # crushed. The output clamp stays, because that value is displayed and
+    # baked into LUTs.
+    def _channel_expr(i):
+        return (
+            "x {off} + {slope} * {lift} + 0 max {igamma} pow "
+            "{pivot} - {contrast} * {pivot} + {bright} + 0 max 1 min"
+        ).format(
+            off=_f(_offset[i]), slope=_f(_slope[i]), lift=_f(_lift[i]),
+            igamma=_f(_inv_gamma[i]), pivot=_f(pivot), contrast=_f(contrast), bright=_f(brightness),
+        )
+
+    _graded = core.std.Expr(_graded, [_channel_expr(0), _channel_expr(1), _channel_expr(2)])
+
+    # Hue and saturation need all three planes at once, so they only run when
+    # they actually do something.
+    if hue != 0.0 or saturation != 1.0:
+        _cos, _sin = math.cos(math.radians(hue)), math.sin(math.radians(hue))
+        _r = core.std.ShufflePlanes(_graded, 0, vs.GRAY)
+        _g = core.std.ShufflePlanes(_graded, 1, vs.GRAY)
+        _b = core.std.ShufflePlanes(_graded, 2, vs.GRAY)
+
+        Y = "x {lr} * y {lg} * + z {lb} * +".format(lr=_f(LUMA_R), lg=_f(LUMA_G), lb=_f(LUMA_B))
+        CR = "x {y} -".format(y=Y)
+        CB = "z {y} -".format(y=Y)
+        CRR = "{cb} {s} * {cr} {c} * +".format(cb=CB, cr=CR, s=_f(_sin), c=_f(_cos))
+        CBR = "{cb} {c} * {cr} {s} * -".format(cb=CB, cr=CR, s=_f(_sin), c=_f(_cos))
+
+        _planes = [_r, _g, _b]
+        _sat = _f(saturation)
+        _out_r = core.std.Expr(_planes, "{y} {crr} {sat} * + 0 max 1 min".format(y=Y, crr=CRR, sat=_sat))
+        _out_b = core.std.Expr(_planes, "{y} {cbr} {sat} * + 0 max 1 min".format(y=Y, cbr=CBR, sat=_sat))
+        # Green falls out of holding luma fixed while red and blue move.
+        _out_g = core.std.Expr(_planes, (
+            "{y} {crr} {lr} * {cbr} {lb} * + {sat} * {lg} / - 0 max 1 min"
+        ).format(y=Y, crr=CRR, cbr=CBR, lr=_f(LUMA_R), lb=_f(LUMA_B), lg=_f(LUMA_G), sat=_sat))
+
+        _graded = core.std.ShufflePlanes([_out_r, _out_g, _out_b], [0, 0, 0], vs.RGB)
+
+    if _source_is_rgb:
+        clip = core.resize.Bicubic(_graded, format=_source_format)
+    else:
+        clip = core.resize.Bicubic(_graded, format=_source_format, matrix_s="709")
+```
+
+</details>
+
+### Create LUT 
+
+Marks a place in the chain and remembers the colour there, changing nothing itself. A Load LUT below puts that colour back; the colour work above can be saved as a .cube.
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Create LUT does nothing to the picture, on purpose.
+#
+# It marks a place in the chain and remembers the colour there. A Load LUT
+# step further down, pointed at this one, puts that colour back; the table it
+# needs is made in the app, where the model of what a grade does actually
+# lives, and written beside the workflow. Nothing about that is work for the
+# render to repeat, so at render time this step is a no-op and the frames pass
+# through untouched.
+#
+# It still takes a position in the chain, and the position is the point.
+pass
+```
+
+</details>
+
 ### Invert 
 
 Inverts all colors
@@ -511,6 +806,207 @@ Leveling Filter including Gamma
 # Full Docs: https://www.vapoursynth.com/doc/functions/video/levels.html
 
 clip = core.std.Levels(clip, min_in=0, max_in=65535, min_out=0, max_out=65535, gamma=1.0)
+```
+
+</details>
+
+### Load LUT 
+
+Applies a 3D colour lookup table: one generated from a Create LUT step above it, to put that colour back, or a .cube file from disk.
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Applies a 3D LUT, preferring the timecube plugin and falling back to one
+# built out of akarin.Expr when it is absent.
+#
+# timecube is the right tool and setup installs it from PyPI on both
+# platforms: one node, a table that costs 400KB whatever the resolution, and
+# native SIMD. The fallback is for an install that predates it, or one where
+# the wheel could not be fetched — a slow look beats a broken one.
+#
+# Both paths agree to 1.2e-7. timecube's interp=1 is tetrahedral and is
+# deliberately left alone, because taking it would make the render depend on
+# which plugin happened to be installed.
+#
+# The fallback is worth understanding before relying on it. akarin.Expr can
+# read a pixel at a computed coordinate, so the table travels as a companion
+# clip tiled one size x size block per blue slice, k blocks across, and the
+# expression takes eight taps out of it per pixel. It is correct to 5e-7
+# against src/utils/lut.ts sampleLut(), but the companion clips are the size
+# of the picture and the plane split doubles the node count, so measured it
+# roughly doubles pipeline memory: +537MB at 1080p and +2.1GB at 4K, where it
+# also drops throughput from 69 to 10 fps. Fine for 1080p, painful for 4K.
+
+lut_path = {{lut_path}}
+strength = {{strength}}
+
+def _check_lut_path(path):
+    # Reached with an empty path whenever someone picks Apply LUT out of the
+    # filter list rather than importing one, and with a stale path whenever a
+    # LUT is moved. Both are ordinary, so both say so rather than surfacing a
+    # traceback from open() — or, worse, from inside the plugin.
+    import os
+    if not path:
+        raise ValueError("Load LUT has no table yet. Point it at a Create LUT step above it and press Generate, or pick a .cube file.")
+    if not os.path.isfile(path):
+        raise ValueError("Load LUT cannot find " + str(path) + " any more.")
+
+def _is_number(text):
+    try:
+        float(text)
+        return True
+    except ValueError:
+        return False
+
+def _read_cube(path):
+    size = None
+    dmin = [0.0, 0.0, 0.0]
+    dmax = [1.0, 1.0, 1.0]
+    rows = []
+    with open(path, "r", encoding="utf-8", errors="replace") as handle:
+        for line in handle:
+            line = line.split("#")[0].strip()
+            if not line:
+                continue
+            fields = line.split()
+            head = fields[0].upper()
+            if head == "LUT_3D_SIZE":
+                size = int(fields[1])
+            elif head == "LUT_1D_SIZE":
+                raise ValueError(
+                    "That is a 1D cube. Importing it through the grading dock "
+                    "lifts it onto a 3D lattice; the timecube plugin also reads "
+                    "1D directly, but this fallback path does not.")
+            elif head == "DOMAIN_MIN":
+                dmin = [float(v) for v in fields[1:4]]
+            elif head == "DOMAIN_MAX":
+                dmax = [float(v) for v in fields[1:4]]
+            elif not _is_number(fields[0]):
+                # TITLE, and anything else a .cube may legally carry that this
+                # reader has no use for. Skipped rather than pushed at float(),
+                # which is what turned a LUT_3D_INPUT_RANGE line - or any junk
+                # file - into a traceback instead of a message.
+                continue
+            elif len(fields) < 3:
+                raise ValueError("A table row needs three values; found %d." % len(fields))
+            else:
+                rows.append((float(fields[0]), float(fields[1]), float(fields[2])))
+    if size is None:
+        raise ValueError("No LUT_3D_SIZE in " + str(path) + " - that is not a 3D .cube.")
+    if size < 2 or size > 256:
+        raise ValueError("LUT_3D_SIZE %d is outside the 2..256 a cube allows." % size)
+    if len(rows) != size ** 3:
+        raise ValueError("LUT_3D_SIZE %d needs %d rows, found %d." % (size, size ** 3, len(rows)))
+    # .cube runs red fastest. Indexed here as [channel][blue][green][red].
+    lat = np.zeros((3, size, size, size), dtype=np.float32)
+    at = 0
+    for _b in range(size):
+        for _g in range(size):
+            for _r in range(size):
+                row = rows[at]
+                at += 1
+                lat[0, _b, _g, _r] = row[0]
+                lat[1, _b, _g, _r] = row[1]
+                lat[2, _b, _g, _r] = row[2]
+    return size, lat, dmin, dmax
+
+def _lf(v):
+    return "{:.8f}".format(float(v))
+
+def _lut_expr(size, k, dmin, dmax):
+    n1 = size - 1
+    parts = []
+    for i, src in enumerate(("x", "y", "z")):
+        parts.append("{s} {mn} - {sp} / 0 max 1 min {n1} * i{i}!".format(
+            s=src, mn=_lf(dmin[i]), sp=_lf(max(1e-9, dmax[i] - dmin[i])), n1=n1, i=i))
+    for i in range(3):
+        parts.append("i{i}@ floor l{i}! l{i}@ 1 + {n1} min h{i}! i{i}@ l{i}@ - f{i}!".format(i=i, n1=n1))
+    tap = 0
+    for bz in ("l2", "h2"):
+        for gy in ("l1", "h1"):
+            for rx in ("l0", "h0"):
+                parts.append(
+                    "{bz}@ {k} % {n} * {rx}@ + {bz}@ {k} / trunc {n} * {gy}@ + a[] t{tap}!".format(
+                        bz=bz, gy=gy, rx=rx, k=k, n=size, tap=tap))
+                tap += 1
+    for i in range(4):
+        parts.append("t{a}@ 1 f0@ - * t{b}@ f0@ * + p{i}!".format(a=i * 2, b=i * 2 + 1, i=i))
+    parts.append("p0@ 1 f1@ - * p1@ f1@ * + q0!")
+    parts.append("p2@ 1 f1@ - * p3@ f1@ * + q1!")
+    parts.append("q0@ 1 f2@ - * q1@ f2@ * +")
+    return " ".join(parts)
+
+strength = min(1.0, max(0.0, float(strength)))
+
+# No table yet, in the preview, is the one case that passes through. The
+# preview is where a restore table is measured from - the frames on either
+# side of whatever changed the colour come from this very session - so
+# refusing to open until the table exists would make the table impossible to
+# make. Only here: a render with no table still stops.
+# Read through globals() rather than as a bare name: the flag exists only
+# in a preview script, and a render has to see its absence rather than a
+# NameError.
+_previewing_without_table = (not lut_path) and bool(globals().get("VK_PREVIEW", False))
+if strength > 0.0 and not _previewing_without_table:
+    _check_lut_path(lut_path)
+
+    _source_format = clip.format.id
+    _source_is_rgb = clip.format.color_family == vs.RGB
+    if _source_is_rgb:
+        _rgb = core.resize.Bicubic(clip, format=vs.RGBS)
+    else:
+        _rgb = core.resize.Bicubic(clip, format=vs.RGBS, matrix_in_s="709")
+
+    if hasattr(core, "timecube"):
+        # One node, and a table that costs the same at 4K as at 480p.
+        _looked = core.timecube.Cube(_rgb, cube=lut_path)
+    elif hasattr(core, "akarin"):
+        import numpy as np
+
+        _size, _lat, _dmin, _dmax = _read_cube(lut_path)
+
+        _k = max(1, min(_size, _rgb.width // _size))
+        _tile_rows = -(-_size // _k)
+        _pad_w = max(0, _k * _size - _rgb.width)
+        _pad_h = max(0, _tile_rows * _size - _rgb.height)
+        _work = _rgb
+        if _pad_w or _pad_h:
+            _work = core.std.AddBorders(_work, right=_pad_w, bottom=_pad_h)
+        _cw, _ch = _work.width, _work.height
+
+        def _table_clip(channel):
+            img = np.zeros((_ch, _cw), dtype=np.float32)
+            for _b in range(_size):
+                _ty, _tx = divmod(_b, _k)
+                img[_ty * _size:(_ty + 1) * _size, _tx * _size:(_tx + 1) * _size] = _lat[channel, _b]
+            base = core.std.BlankClip(width=_cw, height=_ch, format=vs.GRAYS, length=1, color=0.0)
+            def _fill(n, f, d=img):
+                fo = f.copy()
+                np.copyto(np.asarray(fo[0]), d)
+                return fo
+            # Built once and looped, so the table is not rebuilt per frame.
+            return core.std.Loop(core.std.ModifyFrame(base, base, _fill), times=_work.num_frames)
+
+        _planes = [core.std.ShufflePlanes(_work, i, vs.GRAY) for i in range(3)]
+        _expr = _lut_expr(_size, _k, _dmin, _dmax)
+        _out = [core.akarin.Expr(_planes + [_table_clip(c)], _expr) for c in range(3)]
+        _looked = core.std.ShufflePlanes(_out, [0, 0, 0], vs.RGB)
+        if _pad_w or _pad_h:
+            _looked = core.std.Crop(_looked, right=_pad_w, bottom=_pad_h)
+    else:
+        raise RuntimeError(
+            "Load LUT needs either the timecube or the akarin plugin, and neither is installed.")
+
+    # One mix for both paths, so strength means the same thing either way.
+    if strength < 1.0:
+        _looked = core.std.Merge(_rgb, _looked, weight=strength)
+
+    if _source_is_rgb:
+        clip = core.resize.Bicubic(_looked, format=_source_format)
+    else:
+        clip = core.resize.Bicubic(_looked, format=_source_format, matrix_s="709")
 ```
 
 </details>
@@ -595,6 +1091,53 @@ float_format = clip.format.replace(sample_type=vs.FLOAT, bits_per_sample=16).id
 orig_clip_float = core.resize.Bilinear(original_clip, format=float_format)
 clip_float = core.resize.Point(clip, format=float_format)
 clip_float = vs_colorfix.wavelet(clip_float, orig_clip_float, wavelets=wavelets, backend=backend, num_streams=num_streams, gpu_id=gpu_id)
+clip = core.resize.Point(clip_float, format=clip.format.id)
+```
+
+</details>
+
+### Wavelet Color Fix from Step 
+
+Corrects a colour shift by matching the picture to the colour it had at a step you pick, rather than always to the untouched source.
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Full Docs: https://github.com/pifroggi/vs_colorfix?tab=readme-ov-file#wavelet-color-fix
+#
+# The same wavelet colour fix as Wavelet Color Fix. What differs is where the
+# reference comes from.
+#
+# The original reads original_clip, a name bound once near the top of the
+# generated script. Pointing it anywhere else meant inserting a Move Original
+# Clip Reference step whose whole job was to rebind that one name, which made
+# the reference a thing you set somewhere else in the list and then had to
+# remember. This one names the step it wants, on its own card, by id. The app
+# writes that step's picture into VK_STAGES as the script is built and the
+# line below reads it back out, so several steps can match against different
+# places at once and reordering the chain cannot silently repoint any of them.
+#
+# vs_colorfix resizes the reference to match, so matching against a step from
+# below an upscaler is fine. It does insist on the same frame count: a step
+# between here and the reference that adds or drops frames will be refused by
+# name rather than fixed up.
+
+wavelets     = 4       # Higher is a more global color fix, lower is more local.
+backend      = "auto"  # "cpu", "tensorrt", "directml", "ncnn", or "auto" to use Vapourkit's global setting.
+num_streams  = 2       # Number of parallel GPU streams.
+gpu_id       = 0       # The GPU to use.
+
+reference    = {{stage:source_id}}
+
+
+import vs_colorfix
+backend = backend.lower()
+backend = VK_BACKEND if backend == "auto" else backend
+float_format = clip.format.replace(sample_type=vs.FLOAT, bits_per_sample=16).id
+reference_float = core.resize.Bilinear(reference, format=float_format)
+clip_float = core.resize.Point(clip, format=float_format)
+clip_float = vs_colorfix.wavelet(clip_float, reference_float, wavelets=wavelets, backend=backend, num_streams=num_streams, gpu_id=gpu_id)
 clip = core.resize.Point(clip_float, format=clip.format.id)
 ```
 
@@ -734,7 +1277,12 @@ import sys
 sys.path.insert(0, r'hybrid_filters')
 from deband import GradFun3
 
-clip = GradFun3(clip, thr=0.35, radius=16, elast=3.0, mask=2, mode=2, ampo=1, ampn=0, pat=32, dyn=False, staticnoise=False, smode=2, thr_det=2 + round(max(thr - 0.35, 0) / 0.3), debug=False, plane=0, bits=None, dyn_resize=False)
+# thr_det is derived from thr, so thr has to be a name before the call rather
+# than only a keyword inside it — as a bare name in the argument list it was a
+# NameError every time, whatever the source.
+thr = 0.35
+
+clip = GradFun3(clip, thr=thr, radius=16, elast=3.0, mask=2, mode=2, ampo=1, ampn=0, pat=32, dyn=False, staticnoise=False, smode=2, thr_det=2 + round(max(thr - 0.35, 0) / 0.3), debug=False, planes=[0], bits=None)
 ```
 
 </details>
@@ -826,6 +1374,26 @@ Reduces halo artifacts with separate controls for dark and bright halos
 # From hybrid_filters/dehalo.py
 import sys
 sys.path.insert(0, r'hybrid_filters')
+
+# This bundled script still imports the old, deprecated `vsutil` package
+# (superseded by vstools, which does not ship it). Shim it from vstools so
+# the script can load without a separate PyPI dependency.
+import types as _pytypes
+if 'vsutil' not in sys.modules:
+    import vstools as _vst
+    _u = _pytypes.ModuleType('vsutil')
+    for _n in ('depth', 'fallback', 'get_y', 'join', 'plane', 'scale_value', 'get_depth', 'get_w', 'split', 'iterate'):
+        setattr(_u, _n, getattr(_vst, _n))
+    _u.Dither = _vst.DitherType
+    _t = _pytypes.ModuleType('vsutil.types')
+    _t.Dither = _vst.DitherType
+    class _Range(int):
+        LIMITED, FULL = 0, 1
+    _t.Range = _Range
+    _t.resolve_enum = lambda enum, value, name, fn=None: None if value is None else enum(value)
+    _u.types = _t
+    sys.modules['vsutil'] = _u
+
 from dehalo import DeHalo_alpha
 
 clip = DeHalo_alpha(clip, rx=2.0, ry=2.0, darkstr=1.0, brightstr=1.0, lowsens=50.0, highsens=50.0, ss=1.5)
@@ -927,13 +1495,15 @@ High-quality edge-directed deinterlacing using EEDI3 algorithm
 ```python
 # High-quality deinterlacing with EEDI3
 # Full Docs: https://github.com/HomeOfVapourSynthEvolution/VapourSynth-EEDI3
+# The CPU/OpenCL eedi3m plugin was replaced by eedi3vk2 (Vulkan), which works
+# on any GPU vendor. Same field/dh arguments.
 
 from vstools import vs, core
 
 field = 1  # Field to keep (0=bottom, 1=top)
 dh = True  # Double height
 
-clip = core.eedi3m.EEDI3(clip, field=field, dh=dh)
+clip = core.eedi3vk2.EEDI3(clip, field=field, dh=dh)
 ```
 
 </details>
@@ -982,11 +1552,11 @@ from vsdenoise.mvtools.presets import MVToolsPreset
 from vsaa.deinterlacers import NNEDI3
 
 clip = (
-    QTempGaussMC(
-        clip,
-        input_type=QTempGaussMC.InputType.INTERLACE,
-        tff=True,
-    )
+    # QTempGaussMC's constructor takes no clip/input_type anymore - it only
+    # configures per-stage settings (InputType is gone; interlaced vs.
+    # progressive is now inferred from the clip / the deinterlace() tff arg).
+    # The clip and field order now go to deinterlace() at the end of the chain.
+    QTempGaussMC()
     .prefilter(
         tr=2,
         sc_threshold=0.1,
@@ -1064,7 +1634,7 @@ clip = (
         blur_args=None,
         mask_args={"ml": 4},
     )
-    .deinterlace()
+    .deinterlace(clip, tff=True)
 )
 
 original_clip = clip
@@ -1084,6 +1654,26 @@ High-quality motion-compensated deinterlacing (QTGMC)
 # From hybrid_filters/qtgmc.py
 import sys
 sys.path.insert(0, r'hybrid_filters')
+
+# This bundled script still imports the old, deprecated `vsutil` package
+# (superseded by vstools, which does not ship it). Shim it from vstools so
+# the script can load without a separate PyPI dependency.
+import types as _pytypes
+if 'vsutil' not in sys.modules:
+    import vstools as _vst
+    _u = _pytypes.ModuleType('vsutil')
+    for _n in ('depth', 'fallback', 'get_y', 'join', 'plane', 'scale_value', 'get_depth', 'get_w', 'split', 'iterate'):
+        setattr(_u, _n, getattr(_vst, _n))
+    _u.Dither = _vst.DitherType
+    _t = _pytypes.ModuleType('vsutil.types')
+    _t.Dither = _vst.DitherType
+    class _Range(int):
+        LIMITED, FULL = 0, 1
+    _t.Range = _Range
+    _t.resolve_enum = lambda enum, value, name, fn=None: None if value is None else enum(value)
+    _u.types = _t
+    sys.modules['vsutil'] = _u
+
 from qtgmc import QTGMC
 
 clip = QTGMC(clip, Preset='Slower', FPSDivisor=1, TFF=None)
@@ -1122,6 +1712,26 @@ Deinterlaces using TFM with QTGMC bobbing for field reconstruction
 # From hybrid_filters/TFMBob.py
 import sys
 sys.path.insert(0, r'hybrid_filters')
+
+# TFMBob.py pulls in qtgmc.py, which still imports the old, deprecated
+# `vsutil` package (superseded by vstools, which does not ship it). Shim it
+# from vstools so the script can load without a separate PyPI dependency.
+import types as _pytypes
+if 'vsutil' not in sys.modules:
+    import vstools as _vst
+    _u = _pytypes.ModuleType('vsutil')
+    for _n in ('depth', 'fallback', 'get_y', 'join', 'plane', 'scale_value', 'get_depth', 'get_w', 'split', 'iterate'):
+        setattr(_u, _n, getattr(_vst, _n))
+    _u.Dither = _vst.DitherType
+    _t = _pytypes.ModuleType('vsutil.types')
+    _t.Dither = _vst.DitherType
+    class _Range(int):
+        LIMITED, FULL = 0, 1
+    _t.Range = _Range
+    _t.resolve_enum = lambda enum, value, name, fn=None: None if value is None else enum(value)
+    _u.types = _t
+    sys.modules['vsutil'] = _u
+
 from TFMBob import TFMBobQ
 
 clip = TFMBobQ(clip, pp=6, cthresh=9, MI=80, chroma=False, openCL=False)
@@ -1220,6 +1830,26 @@ Non-local means denoising with GPU acceleration support
 # From hybrid_filters/denoise.py
 import sys
 sys.path.insert(0, r'hybrid_filters')
+
+# This bundled script still imports the old, deprecated `vsutil` package
+# (superseded by vstools, which does not ship it). Shim it from vstools so
+# the script can load without a separate PyPI dependency.
+import types as _pytypes
+if 'vsutil' not in sys.modules:
+    import vstools as _vst
+    _u = _pytypes.ModuleType('vsutil')
+    for _n in ('depth', 'fallback', 'get_y', 'join', 'plane', 'scale_value', 'get_depth', 'get_w', 'split', 'iterate'):
+        setattr(_u, _n, getattr(_vst, _n))
+    _u.Dither = _vst.DitherType
+    _t = _pytypes.ModuleType('vsutil.types')
+    _t.Dither = _vst.DitherType
+    class _Range(int):
+        LIMITED, FULL = 0, 1
+    _t.Range = _Range
+    _t.resolve_enum = lambda enum, value, name, fn=None: None if value is None else enum(value)
+    _u.types = _t
+    sys.modules['vsutil'] = _u
+
 from denoise import KNLMeansCL
 
 clip = KNLMeansCL(clip, d=None, a=None, s=None, h=None)
@@ -1249,7 +1879,7 @@ clip = mc_degrain(
     preset=MVToolsPreset.HQ_SAD,  # Quality preset (HQ_SAD, FAST, etc.)
     tr=2,                   # Temporal radius (1-3 recommended)
     blksize=16,             # Block size for motion estimation
-    overlap=2,              # Block overlap
+    overlap_div=2,          # Block overlap divisor (was "overlap")
     refine=1,               # Motion vector refinement iterations
     thsad=400,              # SAD threshold for denoising strength
     thsad_recalc=None,      # SAD threshold for recalculation
@@ -1281,7 +1911,7 @@ clip = mc_degrain(
     tr=2,
     thsad=400,
     blksize=16,
-    overlap=2,
+    overlap_div=2,  # was "overlap"
     preset=MVToolsPreset.HQ_SAD
 )
 ```
@@ -1322,25 +1952,6 @@ clip = nl_means(clip, h=1.2, tr=1, a=2, s=4, backend=nl_means.Backend.CUDA)
 
 </details>
 
-### Oyster 
-
-High-quality denoising using BM3D with motion compensation
-
-<details>
-<summary>Show code</summary>
-
-```python
-# High-quality denoising using BM3D
-# From hybrid_filters/Oyster.py
-import sys
-sys.path.insert(0, r'hybrid_filters')
-from Oyster import Super_OYSTER
-
-clip = Super_OYSTER(clip, sfMode=3, prefilter=False)
-```
-
-</details>
-
 ### SMDegrain 
 
 Pure temporal denoiser using MVTools with motion compensation
@@ -1374,7 +1985,10 @@ import sys
 sys.path.insert(0, r'hybrid_filters')
 from SpotLess import SpotLess
 
-clip = SpotLess(clip, radT=1, thsad=10000, chroma=True, truemotion=True)
+# The default smoother='tmedian' hardcodes the now-gone standalone tmedian
+# plugin; the script's own 'zsmooth' option reaches the same
+# TemporalMedian on the still-present zsmooth plugin.
+clip = SpotLess(clip, radT=1, thsad=10000, chroma=True, truemotion=True, smoother='zsmooth')
 ```
 
 </details>
@@ -1391,6 +2005,26 @@ Dampens grain slightly while maintaining original look using spatial and tempora
 # From hybrid_filters/degrain.py
 import sys
 sys.path.insert(0, r'hybrid_filters')
+
+# This bundled script still imports the old, deprecated `vsutil` package
+# (superseded by vstools, which does not ship it). Shim it from vstools so
+# the script can load without a separate PyPI dependency.
+import types as _pytypes
+if 'vsutil' not in sys.modules:
+    import vstools as _vst
+    _u = _pytypes.ModuleType('vsutil')
+    for _n in ('depth', 'fallback', 'get_y', 'join', 'plane', 'scale_value', 'get_depth', 'get_w', 'split', 'iterate'):
+        setattr(_u, _n, getattr(_vst, _n))
+    _u.Dither = _vst.DitherType
+    _t = _pytypes.ModuleType('vsutil.types')
+    _t.Dither = _vst.DitherType
+    class _Range(int):
+        LIMITED, FULL = 0, 1
+    _t.Range = _Range
+    _t.resolve_enum = lambda enum, value, name, fn=None: None if value is None else enum(value)
+    _u.types = _t
+    sys.modules['vsutil'] = _u
+
 from degrain import STPresso
 
 clip = STPresso(clip, limit=3, bias=24, RGmode=4, tthr=12, tlimit=3, tbias=49, back=1)
@@ -1523,13 +2157,42 @@ Detects frames with low temporal difference and duplicates the previous frame if
 <summary>Show code</summary>
 
 ```python
-# Add duplicate frames when temporal difference is below threshold
-# From hybrid_filters/AddDuplicates.py
-import sys
-sys.path.insert(0, r'hybrid_filters')
-from AddDuplicates import addDup
+# Detects a frame that barely differs from the one before it and shows that
+# previous frame in its place.
+#
+# The bundled AddDuplicates.py is not used. It trims to clip.num_frames, an
+# index one past the last frame, so it raised on every clip it was ever given;
+# and it built the replacement by splicing around the frame, which needs three
+# Trims and an edge case at each end for something that is one substitution.
+#
+# Here the comparison clip is the source delayed by one frame, so frame n of
+# it is frame n-1 of the source. PlaneStatsDiff against it is exactly "how
+# different is this frame from its predecessor", and the substitution is then
+# a choice between two clips of the same length, with no arithmetic on frame
+# indices and nothing to get wrong at the ends.
 
-clip = addDup(clip, thresh=0.3, debug=False)
+thresh = 0.3   # PlaneStatsDiff below which a frame counts as a duplicate.
+
+if clip.format.color_family not in (vs.YUV, vs.GRAY):
+    raise ValueError("Add Duplicates only reads luma, so it needs a YUV or GRAY clip.")
+
+# Held under its own name because the last line rebinds `clip`, and _pick is
+# called at render time: a closure over `clip` would by then be pointing at
+# the FrameEval node itself, and asking it for a frame asks it for a frame.
+_source = clip
+_previous = (_source[0] + _source)[:_source.num_frames]
+_diff = core.std.PlaneStats(_source, _previous)
+
+
+def _pick(n, f):
+    diff = f.props["PlaneStatsDiff"]
+    # Frame 0 has no predecessor, so it is never a duplicate of one.
+    if n == 0 or diff > thresh:
+        return _source.std.SetFrameProps(_DupApplied=False, _Diff=diff)
+    return _previous.std.SetFrameProps(_DupApplied=True, _Diff=diff)
+
+
+clip = core.std.FrameEval(_source, _pick, prop_src=_diff)
 ```
 
 </details>
@@ -1661,25 +2324,6 @@ clip = ChangeFPS(clip, target_fps_num=60, target_fps_den=1)
 
 </details>
 
-### Frame Rate Converter 
-
-Increases frame rate with interpolation and fine artifact removal
-
-<details>
-<summary>Show code</summary>
-
-```python
-# Advanced frame rate conversion with artifact removal
-# From hybrid_filters/FrameRateConverter.py
-import sys
-sys.path.insert(0, r'hybrid_filters')
-from FrameRateConverter import FrameRateConverter
-
-clip = FrameRateConverter(clip, NewNum=60, NewDen=1, Preset='normal')
-```
-
-</details>
-
 ### Select Every 
 
 Selects every Nth frame from the clip to reduce frame rate
@@ -1711,6 +2355,26 @@ Restores original framerate by detecting and removing duplicate frames
 # From hybrid_filters/srestore.py
 import sys
 sys.path.insert(0, r'hybrid_filters')
+
+# This bundled script still imports the old, deprecated `vsutil` package
+# (superseded by vstools, which does not ship it). Shim it from vstools so
+# the script can load without a separate PyPI dependency.
+import types as _pytypes
+if 'vsutil' not in sys.modules:
+    import vstools as _vst
+    _u = _pytypes.ModuleType('vsutil')
+    for _n in ('depth', 'fallback', 'get_y', 'join', 'plane', 'scale_value', 'get_depth', 'get_w', 'split', 'iterate'):
+        setattr(_u, _n, getattr(_vst, _n))
+    _u.Dither = _vst.DitherType
+    _t = _pytypes.ModuleType('vsutil.types')
+    _t.Dither = _vst.DitherType
+    class _Range(int):
+        LIMITED, FULL = 0, 1
+    _t.Range = _Range
+    _t.resolve_enum = lambda enum, value, name, fn=None: None if value is None else enum(value)
+    _u.types = _t
+    sys.modules['vsutil'] = _u
+
 from srestore import sRestoreMUVs
 
 clip = sRestoreMUVs(clip, frate=None, omode=6, mode=2, thresh=16)
@@ -1720,44 +2384,6 @@ clip = sRestoreMUVs(clip, frate=None, omode=6, mode=2, thresh=16)
 
 
 ## Frame Recovery
-
-### Fill Drops RIFE 
-
-Fills dropped frames using RIFE AI-based interpolation
-
-<details>
-<summary>Show code</summary>
-
-```python
-# Fill dropped frames using RIFE AI interpolation
-# From hybrid_filters/filldrops.py
-import sys
-sys.path.insert(0, r'hybrid_filters')
-from filldrops import fillWithRIFE
-
-clip = fillWithRIFE(clip, firstframe=100, rifeModel=22, rifeTTA=False, rifeUHD=False)
-```
-
-</details>
-
-### Fill Drops SVP 
-
-Fills dropped frames using SVP (SmoothVideo Project) interpolation
-
-<details>
-<summary>Show code</summary>
-
-```python
-# Fill dropped frames using SVP interpolation
-# From hybrid_filters/filldrops.py
-import sys
-sys.path.insert(0, r'hybrid_filters')
-from filldrops import fillWithSVP
-
-clip = fillWithSVP(clip, firstframe=100, gpu=False)
-```
-
-</details>
 
 ### Fill Duplicate Frames 
 
@@ -1793,7 +2419,15 @@ import sys
 sys.path.insert(0, r'hybrid_filters')
 from ReplaceMultipleFrames import ReplaceMultipleFrames
 
-rmf = ReplaceMultipleFrames(clip, intervals=[[100, 105], [200, 210]], method='SVP', debug=False)
+# Each interval must be at most 10 frames long (validate_intervals enforces
+# this); the default example's second interval was 11 frames and always
+# raised, on any clip.
+# method='SVP' (the script's own default) hardcodes core.svp1, a proprietary
+# plugin this pipeline never installs, and additionally requires YUV420P8
+# input while this pipeline runs 16-bit - it would still fail per-interval
+# even with a valid interval. method='MV' uses mvtools (already a dependency
+# here) instead and has no such restriction.
+rmf = ReplaceMultipleFrames(clip, intervals=[[100, 105], [200, 209]], method='MV', debug=False)
 clip = rmf.out
 ```
 
@@ -1826,26 +2460,6 @@ clip = vs_grain.fgrain(clip, iterations=iterations, size=size, deviation=deviati
 
 </details>
 
-### Grain Factory 
-
-Advanced grain generation with separate controls for dark, midtone, and bright areas
-
-<details>
-<summary>Show code</summary>
-
-```python
-# Add customizable film grain with separate controls for dark, midtone, and bright areas
-# From hybrid_filters/addGrain.py
-import sys
-sys.path.insert(0, r'hybrid_filters')
-from addGrain import GrainFactory3
-
-clip = GrainFactory3(clip, g1str=7.0, g2str=5.0, g3str=3.0, g1shrp=60, g2shrp=66, g3shrp=80, 
-                     g1size=1.5, g2size=1.2, g3size=0.9, temp_avg=0, ontop_grain=0.0)
-```
-
-</details>
-
 ### Grain Stabilize 
 
 Stabilizes film grain to reduce temporal flickering
@@ -1855,11 +2469,12 @@ Stabilizes film grain to reduce temporal flickering
 
 ```python
 # Stabilize grain (make it less flickery)
+# The rgvs plugin is gone; vsrgtools.remove_grain() wraps the zsmooth replacement.
 
-from vstools import vs, core
+from vsrgtools import remove_grain
 
 # Temporal smoothing of grain
-clip = core.rgvs.RemoveGrain(clip, mode=19)
+clip = remove_grain(clip, mode=19)
 ```
 
 </details>
@@ -1875,13 +2490,42 @@ Detects frames with low temporal difference and duplicates the previous frame if
 <summary>Show code</summary>
 
 ```python
-# Add duplicate frames when temporal difference is below threshold
-# From hybrid_filters/AddDuplicates.py
-import sys
-sys.path.insert(0, r'hybrid_filters')
-from AddDuplicates import addDup
+# Detects a frame that barely differs from the one before it and shows that
+# previous frame in its place.
+#
+# The bundled AddDuplicates.py is not used. It trims to clip.num_frames, an
+# index one past the last frame, so it raised on every clip it was ever given;
+# and it built the replacement by splicing around the frame, which needs three
+# Trims and an edge case at each end for something that is one substitution.
+#
+# Here the comparison clip is the source delayed by one frame, so frame n of
+# it is frame n-1 of the source. PlaneStatsDiff against it is exactly "how
+# different is this frame from its predecessor", and the substitution is then
+# a choice between two clips of the same length, with no arithmetic on frame
+# indices and nothing to get wrong at the ends.
 
-clip = addDup(clip, thresh=0.3, debug=False)
+thresh = 0.3   # PlaneStatsDiff below which a frame counts as a duplicate.
+
+if clip.format.color_family not in (vs.YUV, vs.GRAY):
+    raise ValueError("Add Duplicates only reads luma, so it needs a YUV or GRAY clip.")
+
+# Held under its own name because the last line rebinds `clip`, and _pick is
+# called at render time: a closure over `clip` would by then be pointing at
+# the FrameEval node itself, and asking it for a frame asks it for a frame.
+_source = clip
+_previous = (_source[0] + _source)[:_source.num_frames]
+_diff = core.std.PlaneStats(_source, _previous)
+
+
+def _pick(n, f):
+    diff = f.props["PlaneStatsDiff"]
+    # Frame 0 has no predecessor, so it is never a duplicate of one.
+    if n == 0 or diff > thresh:
+        return _source.std.SetFrameProps(_DupApplied=False, _Diff=diff)
+    return _previous.std.SetFrameProps(_DupApplied=True, _Diff=diff)
+
+
+clip = core.std.FrameEval(_source, _pick, prop_src=_diff)
 ```
 
 </details>
@@ -2018,12 +2662,16 @@ Reverses bicubic upscaling to restore original resolution
 
 ```python
 # Reverse bicubic upscaling
-# From hybrid_filters/descale.py
-import sys
-sys.path.insert(0, r'hybrid_filters')
-from descale import Debicubic
+# The bundled descale.py wrapper calls a dispatcher (core.descale.Descale)
+# that no longer exists on the native descale plugin, which now exposes
+# Debicubic/Debilinear/Delanczos/... directly. vskernels wraps those natively
+# and handles YUV chroma planes automatically, so use it instead.
+from vskernels import Bicubic
+from vstools import depth
 
-clip = Debicubic(clip, width=1280, height=720, b=0.0, c=0.5, yuv444=False, gray=False)
+src_depth = clip.format.bits_per_sample
+clip = Bicubic(b=0.0, c=0.5).descale(depth(clip, 32), width=1280, height=720)
+clip = depth(clip, src_depth)
 ```
 
 </details>
@@ -2037,12 +2685,15 @@ Reverses bilinear upscaling to restore original resolution
 
 ```python
 # Reverse bilinear upscaling
-# From hybrid_filters/descale.py
-import sys
-sys.path.insert(0, r'hybrid_filters')
-from descale import Debilinear
+# The bundled descale.py wrapper calls a dispatcher (core.descale.Descale)
+# that no longer exists on the native descale plugin. vskernels wraps the
+# named descale entry points natively and handles YUV chroma automatically.
+from vskernels import Bilinear
+from vstools import depth
 
-clip = Debilinear(clip, width=1280, height=720, yuv444=False, gray=False)
+src_depth = clip.format.bits_per_sample
+clip = Bilinear().descale(depth(clip, 32), width=1280, height=720)
+clip = depth(clip, src_depth)
 ```
 
 </details>
@@ -2078,6 +2729,26 @@ Reduces halo artifacts with separate controls for dark and bright halos
 # From hybrid_filters/dehalo.py
 import sys
 sys.path.insert(0, r'hybrid_filters')
+
+# This bundled script still imports the old, deprecated `vsutil` package
+# (superseded by vstools, which does not ship it). Shim it from vstools so
+# the script can load without a separate PyPI dependency.
+import types as _pytypes
+if 'vsutil' not in sys.modules:
+    import vstools as _vst
+    _u = _pytypes.ModuleType('vsutil')
+    for _n in ('depth', 'fallback', 'get_y', 'join', 'plane', 'scale_value', 'get_depth', 'get_w', 'split', 'iterate'):
+        setattr(_u, _n, getattr(_vst, _n))
+    _u.Dither = _vst.DitherType
+    _t = _pytypes.ModuleType('vsutil.types')
+    _t.Dither = _vst.DitherType
+    class _Range(int):
+        LIMITED, FULL = 0, 1
+    _t.Range = _Range
+    _t.resolve_enum = lambda enum, value, name, fn=None: None if value is None else enum(value)
+    _u.types = _t
+    sys.modules['vsutil'] = _u
+
 from dehalo import DeHalo_alpha
 
 clip = DeHalo_alpha(clip, rx=2.0, ry=2.0, darkstr=1.0, brightstr=1.0, lowsens=50.0, highsens=50.0, ss=1.5)
@@ -2094,12 +2765,15 @@ Reverses Lanczos upscaling to restore original resolution
 
 ```python
 # Reverse Lanczos upscaling
-# From hybrid_filters/descale.py
-import sys
-sys.path.insert(0, r'hybrid_filters')
-from descale import Delanczos
+# The bundled descale.py wrapper calls a dispatcher (core.descale.Descale)
+# that no longer exists on the native descale plugin. vskernels wraps the
+# named descale entry points natively and handles YUV chroma automatically.
+from vskernels import Lanczos
+from vstools import depth
 
-clip = Delanczos(clip, width=1280, height=720, taps=3, yuv444=False, gray=False)
+src_depth = clip.format.bits_per_sample
+clip = Lanczos(taps=3).descale(depth(clip, 32), width=1280, height=720)
+clip = depth(clip, src_depth)
 ```
 
 </details>
@@ -2113,12 +2787,15 @@ Reverses Spline36 upscaling to restore original resolution
 
 ```python
 # Reverse Spline36 upscaling
-# From hybrid_filters/descale.py
-import sys
-sys.path.insert(0, r'hybrid_filters')
-from descale import Despline36
+# The bundled descale.py wrapper calls a dispatcher (core.descale.Descale)
+# that no longer exists on the native descale plugin. vskernels wraps the
+# named descale entry points natively and handles YUV chroma automatically.
+from vskernels import Spline36
+from vstools import depth
 
-clip = Despline36(clip, width=1280, height=720, yuv444=False, gray=False)
+src_depth = clip.format.bits_per_sample
+clip = Spline36().descale(depth(clip, 32), width=1280, height=720)
+clip = depth(clip, src_depth)
 ```
 
 </details>
@@ -2199,44 +2876,6 @@ clip = fadeout(clip, fadeframes=30)
 
 </details>
 
-### Fill Drops RIFE 
-
-Fills dropped frames using RIFE AI-based interpolation
-
-<details>
-<summary>Show code</summary>
-
-```python
-# Fill dropped frames using RIFE AI interpolation
-# From hybrid_filters/filldrops.py
-import sys
-sys.path.insert(0, r'hybrid_filters')
-from filldrops import fillWithRIFE
-
-clip = fillWithRIFE(clip, firstframe=100, rifeModel=22, rifeTTA=False, rifeUHD=False)
-```
-
-</details>
-
-### Fill Drops SVP 
-
-Fills dropped frames using SVP (SmoothVideo Project) interpolation
-
-<details>
-<summary>Show code</summary>
-
-```python
-# Fill dropped frames using SVP interpolation
-# From hybrid_filters/filldrops.py
-import sys
-sys.path.insert(0, r'hybrid_filters')
-from filldrops import fillWithSVP
-
-clip = fillWithSVP(clip, firstframe=100, gpu=False)
-```
-
-</details>
-
 ### Fill Duplicate Frames 
 
 Detects and replaces duplicate frames with interpolated frames
@@ -2276,25 +2915,6 @@ clip = FixChromaBleedingMod(clip, cx=4, cy=4, thr=4.0, strength=0.8, blur=False)
 
 </details>
 
-### Frame Rate Converter 
-
-Increases frame rate with interpolation and fine artifact removal
-
-<details>
-<summary>Show code</summary>
-
-```python
-# Advanced frame rate conversion with artifact removal
-# From hybrid_filters/FrameRateConverter.py
-import sys
-sys.path.insert(0, r'hybrid_filters')
-from FrameRateConverter import FrameRateConverter
-
-clip = FrameRateConverter(clip, NewNum=60, NewDen=1, Preset='normal')
-```
-
-</details>
-
 ### GradFun3 
 
 Advanced debanding combined with resizers for better detail preservation
@@ -2309,27 +2929,12 @@ import sys
 sys.path.insert(0, r'hybrid_filters')
 from deband import GradFun3
 
-clip = GradFun3(clip, thr=0.35, radius=16, elast=3.0, mask=2, mode=2, ampo=1, ampn=0, pat=32, dyn=False, staticnoise=False, smode=2, thr_det=2 + round(max(thr - 0.35, 0) / 0.3), debug=False, plane=0, bits=None, dyn_resize=False)
-```
+# thr_det is derived from thr, so thr has to be a name before the call rather
+# than only a keyword inside it — as a bare name in the argument list it was a
+# NameError every time, whatever the source.
+thr = 0.35
 
-</details>
-
-### Grain Factory 
-
-Advanced grain generation with separate controls for dark, midtone, and bright areas
-
-<details>
-<summary>Show code</summary>
-
-```python
-# Add customizable film grain with separate controls for dark, midtone, and bright areas
-# From hybrid_filters/addGrain.py
-import sys
-sys.path.insert(0, r'hybrid_filters')
-from addGrain import GrainFactory3
-
-clip = GrainFactory3(clip, g1str=7.0, g2str=5.0, g3str=3.0, g1shrp=60, g2shrp=66, g3shrp=80, 
-                     g1size=1.5, g2size=1.2, g3size=0.9, temp_avg=0, ontop_grain=0.0)
+clip = GradFun3(clip, thr=thr, radius=16, elast=3.0, mask=2, mode=2, ampo=1, ampn=0, pat=32, dyn=False, staticnoise=False, smode=2, thr_det=2 + round(max(thr - 0.35, 0) / 0.3), debug=False, planes=[0], bits=None)
 ```
 
 </details>
@@ -2403,6 +3008,26 @@ Non-local means denoising with GPU acceleration support
 # From hybrid_filters/denoise.py
 import sys
 sys.path.insert(0, r'hybrid_filters')
+
+# This bundled script still imports the old, deprecated `vsutil` package
+# (superseded by vstools, which does not ship it). Shim it from vstools so
+# the script can load without a separate PyPI dependency.
+import types as _pytypes
+if 'vsutil' not in sys.modules:
+    import vstools as _vst
+    _u = _pytypes.ModuleType('vsutil')
+    for _n in ('depth', 'fallback', 'get_y', 'join', 'plane', 'scale_value', 'get_depth', 'get_w', 'split', 'iterate'):
+        setattr(_u, _n, getattr(_vst, _n))
+    _u.Dither = _vst.DitherType
+    _t = _pytypes.ModuleType('vsutil.types')
+    _t.Dither = _vst.DitherType
+    class _Range(int):
+        LIMITED, FULL = 0, 1
+    _t.Range = _Range
+    _t.resolve_enum = lambda enum, value, name, fn=None: None if value is None else enum(value)
+    _u.types = _t
+    sys.modules['vsutil'] = _u
+
 from denoise import KNLMeansCL
 
 clip = KNLMeansCL(clip, d=None, a=None, s=None, h=None)
@@ -2442,8 +3067,15 @@ Removes dot crawl artifacts from video
 import sys
 sys.path.insert(0, r'hybrid_filters')
 from decrawl import LUTDeCrawl
+from vstools import depth
 
-clip = LUTDeCrawl(clip, ythresh=10, cthresh=10, maxdiff=50, scnchg=25, usemaxdiff=True)
+# LUTDeCrawl only accepts 8-10 bit YUV, but the pipeline always hands filter
+# steps 16-bit YUV. 10 rather than 8: the round trip quantises the whole
+# picture, not just the dot crawl being removed, so it is worth taking the
+# most the filter will accept.
+src_depth = clip.format.bits_per_sample
+clip = LUTDeCrawl(depth(clip, 10), ythresh=10, cthresh=10, maxdiff=50, scnchg=25, usemaxdiff=True)
+clip = depth(clip, src_depth)
 ```
 
 </details>
@@ -2495,12 +3127,56 @@ Enlarges images by powers of 2 using NNEDI3 with optional shift correction
 
 ```python
 # Enlarge images by powers of 2 using NNEDI3
-# From hybrid_filters/nnedi3_rpow2.py
-import sys
-sys.path.insert(0, r'hybrid_filters')
-from nnedi3_rpow2 import nnedi3_rpow2
+# Reimplemented from hybrid_filters/nnedi3_rpow2.py: it calls the deprecated
+# Core.get_plugins() (removed from modern VapourSynth) just to check whether
+# the classic CPU "nnedi3" plugin is present - which it no longer is, having
+# been superseded by "znedi3" (a modern rewrite with the same nnedi3()
+# function signature, used here instead).
 
-clip = nnedi3_rpow2(clip, rfactor=2, correct_shift=True, kernel="spline36")
+def _nnedi3_rpow2(clip, rfactor=2, width=None, height=None, correct_shift=True, kernel="spline36",
+                   nsize=0, nns=3, qual=None, etype=None, pscrn=None):
+    if not hasattr(core, 'znedi3'):
+        raise RuntimeError("nnedi3_rpow2: znedi3 plugin is required")
+    if (correct_shift or clip.format.subsampling_h) and not hasattr(core, 'fmtc'):
+        raise RuntimeError("nnedi3_rpow2: fmtconv plugin is required")
+
+    width = width or clip.width * rfactor
+    height = height or clip.height * rfactor
+    hshift = 0.0
+    vshift = -0.5
+    pkdnnedi = dict(dh=True, nsize=nsize, nns=nns, qual=qual, etype=etype, pscrn=pscrn)
+    pkdchroma = dict(kernel=kernel, sy=-0.5, planes=[2, 3, 3])
+
+    tmp, times = 1, 0
+    while tmp < rfactor:
+        tmp *= 2
+        times += 1
+    if tmp != rfactor:
+        raise ValueError("nnedi3_rpow2: rfactor must be a power of 2")
+
+    last = clip
+    for i in range(times):
+        field = 1 if i == 0 else 0
+        last = core.znedi3.nnedi3(last, field=field, **pkdnnedi)
+        last = core.std.Transpose(last)
+        if last.format.subsampling_w:
+            field = 1
+            hshift = hshift * 2 - 0.5
+        else:
+            hshift = -0.5
+        last = core.znedi3.nnedi3(last, field=field, **pkdnnedi)
+        last = core.std.Transpose(last)
+
+    if clip.format.subsampling_h:
+        last = core.fmtc.resample(last, w=last.width, h=last.height, **pkdchroma)
+    if correct_shift is True:
+        last = core.fmtc.resample(last, w=width, h=height, kernel=kernel, sx=hshift, sy=vshift)
+    if last.format.id != clip.format.id:
+        last = core.fmtc.bitdepth(last, csp=clip.format.id)
+    return last
+
+
+clip = _nnedi3_rpow2(clip, rfactor=2, correct_shift=True, kernel="spline36")
 ```
 
 </details>
@@ -2521,25 +3197,6 @@ from misc import Overlay
 
 # overlay_clip = ...
 # clip = Overlay(clip, overlay_clip, x=0, y=0, opacity=1.0, mode='normal')
-```
-
-</details>
-
-### Oyster 
-
-High-quality denoising using BM3D with motion compensation
-
-<details>
-<summary>Show code</summary>
-
-```python
-# High-quality denoising using BM3D
-# From hybrid_filters/Oyster.py
-import sys
-sys.path.insert(0, r'hybrid_filters')
-from Oyster import Super_OYSTER
-
-clip = Super_OYSTER(clip, sfMode=3, prefilter=False)
 ```
 
 </details>
@@ -2575,66 +3232,29 @@ High-quality motion-compensated deinterlacing (QTGMC)
 # From hybrid_filters/qtgmc.py
 import sys
 sys.path.insert(0, r'hybrid_filters')
+
+# This bundled script still imports the old, deprecated `vsutil` package
+# (superseded by vstools, which does not ship it). Shim it from vstools so
+# the script can load without a separate PyPI dependency.
+import types as _pytypes
+if 'vsutil' not in sys.modules:
+    import vstools as _vst
+    _u = _pytypes.ModuleType('vsutil')
+    for _n in ('depth', 'fallback', 'get_y', 'join', 'plane', 'scale_value', 'get_depth', 'get_w', 'split', 'iterate'):
+        setattr(_u, _n, getattr(_vst, _n))
+    _u.Dither = _vst.DitherType
+    _t = _pytypes.ModuleType('vsutil.types')
+    _t.Dither = _vst.DitherType
+    class _Range(int):
+        LIMITED, FULL = 0, 1
+    _t.Range = _Range
+    _t.resolve_enum = lambda enum, value, name, fn=None: None if value is None else enum(value)
+    _u.types = _t
+    sys.modules['vsutil'] = _u
+
 from qtgmc import QTGMC
 
 clip = QTGMC(clip, Preset='Slower', FPSDivisor=1, TFF=None)
-```
-
-</details>
-
-### Rainbow Smooth 
-
-Removes rainbow artifacts using edge-aware chroma smoothing
-
-<details>
-<summary>Show code</summary>
-
-```python
-# Remove rainbow artifacts with edge-aware smoothing
-# From hybrid_filters/RainbowSmooth.py
-import sys
-sys.path.insert(0, r'hybrid_filters')
-from RainbowSmooth import RainbowSmooth
-
-clip = RainbowSmooth(clip, radius=3, lthresh=0, hthresh=220, mask="original")
-```
-
-</details>
-
-### Remove Dirt 
-
-Removes dirt and specks from video using temporal cleaning
-
-<details>
-<summary>Show code</summary>
-
-```python
-# Remove dirt and specks from video
-# From hybrid_filters/removeDirt.py
-import sys
-sys.path.insert(0, r'hybrid_filters')
-from removeDirt import RemoveDirt
-
-clip = RemoveDirt(clip, repmode=16, remgrainmode=17, limit=10)
-```
-
-</details>
-
-### Remove Dirt MC 
-
-Removes dirt using motion-compensated temporal cleaning
-
-<details>
-<summary>Show code</summary>
-
-```python
-# Motion-compensated dirt removal
-# From hybrid_filters/removeDirt.py
-import sys
-sys.path.insert(0, r'hybrid_filters')
-from removeDirt import RemoveDirtMC
-
-clip = RemoveDirtMC(clip, limit=6, repmode=16, remgrainmode=17, block_size=8, block_over=4, gpu=False)
 ```
 
 </details>
@@ -2653,7 +3273,15 @@ import sys
 sys.path.insert(0, r'hybrid_filters')
 from ReplaceMultipleFrames import ReplaceMultipleFrames
 
-rmf = ReplaceMultipleFrames(clip, intervals=[[100, 105], [200, 210]], method='SVP', debug=False)
+# Each interval must be at most 10 frames long (validate_intervals enforces
+# this); the default example's second interval was 11 frames and always
+# raised, on any clip.
+# method='SVP' (the script's own default) hardcodes core.svp1, a proprietary
+# plugin this pipeline never installs, and additionally requires YUV420P8
+# input while this pipeline runs 16-bit - it would still fail per-interval
+# even with a valid interval. method='MV' uses mvtools (already a dependency
+# here) instead and has no such restriction.
+rmf = ReplaceMultipleFrames(clip, intervals=[[100, 105], [200, 209]], method='MV', debug=False)
 clip = rmf.out
 ```
 
@@ -2711,7 +3339,10 @@ import sys
 sys.path.insert(0, r'hybrid_filters')
 from SpotLess import SpotLess
 
-clip = SpotLess(clip, radT=1, thsad=10000, chroma=True, truemotion=True)
+# The default smoother='tmedian' hardcodes the now-gone standalone tmedian
+# plugin; the script's own 'zsmooth' option reaches the same
+# TemporalMedian on the still-present zsmooth plugin.
+clip = SpotLess(clip, radT=1, thsad=10000, chroma=True, truemotion=True, smoother='zsmooth')
 ```
 
 </details>
@@ -2728,6 +3359,26 @@ Restores original framerate by detecting and removing duplicate frames
 # From hybrid_filters/srestore.py
 import sys
 sys.path.insert(0, r'hybrid_filters')
+
+# This bundled script still imports the old, deprecated `vsutil` package
+# (superseded by vstools, which does not ship it). Shim it from vstools so
+# the script can load without a separate PyPI dependency.
+import types as _pytypes
+if 'vsutil' not in sys.modules:
+    import vstools as _vst
+    _u = _pytypes.ModuleType('vsutil')
+    for _n in ('depth', 'fallback', 'get_y', 'join', 'plane', 'scale_value', 'get_depth', 'get_w', 'split', 'iterate'):
+        setattr(_u, _n, getattr(_vst, _n))
+    _u.Dither = _vst.DitherType
+    _t = _pytypes.ModuleType('vsutil.types')
+    _t.Dither = _vst.DitherType
+    class _Range(int):
+        LIMITED, FULL = 0, 1
+    _t.Range = _Range
+    _t.resolve_enum = lambda enum, value, name, fn=None: None if value is None else enum(value)
+    _u.types = _t
+    sys.modules['vsutil'] = _u
+
 from srestore import sRestoreMUVs
 
 clip = sRestoreMUVs(clip, frate=None, omode=6, mode=2, thresh=16)
@@ -2737,19 +3388,35 @@ clip = sRestoreMUVs(clip, frate=None, omode=6, mode=2, thresh=16)
 
 ### Stabilize 
 
-CURRENTLY BROKEN - Stabilizes shaky video using motion estimation and compensation
+Stabilizes shaky video using motion estimation and compensation
 
 <details>
 <summary>Show code</summary>
 
 ```python
 # Video stabilization using motion compensation
-# From hybrid_filters/stabilize.py
+# From hybrid_filters/stabilize.py, reimplemented against MVTools' DePan
+# family: the standalone "depan" plugin stabilize.py's Stab() hardcodes
+# (core.depan.DePanEstimate/DePan) is gone. MVTools ships the same
+# functionality as core.mv.DepanEstimate/DepanCompensate (mvtools is already
+# a cross-platform PyPI dependency), just without DepanEstimate's old "range"
+# parameter (dropped upstream, no direct substitute).
 import sys
 sys.path.insert(0, r'hybrid_filters')
-from stabilize import Stab
+from stabilize import AverageFrames
 
-clip = Stab(clip, range=1, dxmax=4, dymax=4, mirror=0)
+dxmax = 4
+dymax = 4
+mirror = 0
+
+temp = AverageFrames(clip, weights=[1] * 15, scenechange=25 / 255)
+if hasattr(core, 'zsmooth'):
+    inter = core.std.Interleave([core.zsmooth.Repair(temp, AverageFrames(clip, weights=[1] * 3, scenechange=25 / 255), 1), clip])
+else:
+    inter = core.std.Interleave([core.rgvs.Repair(temp, AverageFrames(clip, weights=[1] * 3, scenechange=25 / 255), 1), clip])
+mdata = core.mv.DepanEstimate(inter, trust=0, dxmax=dxmax, dymax=dymax)
+last = core.mv.DepanCompensate(inter, data=mdata, offset=-1, mirror=mirror)
+clip = last[::2]
 ```
 
 </details>
@@ -2766,6 +3433,26 @@ Dampens grain slightly while maintaining original look using spatial and tempora
 # From hybrid_filters/degrain.py
 import sys
 sys.path.insert(0, r'hybrid_filters')
+
+# This bundled script still imports the old, deprecated `vsutil` package
+# (superseded by vstools, which does not ship it). Shim it from vstools so
+# the script can load without a separate PyPI dependency.
+import types as _pytypes
+if 'vsutil' not in sys.modules:
+    import vstools as _vst
+    _u = _pytypes.ModuleType('vsutil')
+    for _n in ('depth', 'fallback', 'get_y', 'join', 'plane', 'scale_value', 'get_depth', 'get_w', 'split', 'iterate'):
+        setattr(_u, _n, getattr(_vst, _n))
+    _u.Dither = _vst.DitherType
+    _t = _pytypes.ModuleType('vsutil.types')
+    _t.Dither = _vst.DitherType
+    class _Range(int):
+        LIMITED, FULL = 0, 1
+    _t.Range = _Range
+    _t.resolve_enum = lambda enum, value, name, fn=None: None if value is None else enum(value)
+    _u.types = _t
+    sys.modules['vsutil'] = _u
+
 from degrain import STPresso
 
 clip = STPresso(clip, limit=3, bias=24, RGmode=4, tthr=12, tlimit=3, tbias=49, back=1)
@@ -2804,6 +3491,26 @@ Deinterlaces using TFM with QTGMC bobbing for field reconstruction
 # From hybrid_filters/TFMBob.py
 import sys
 sys.path.insert(0, r'hybrid_filters')
+
+# TFMBob.py pulls in qtgmc.py, which still imports the old, deprecated
+# `vsutil` package (superseded by vstools, which does not ship it). Shim it
+# from vstools so the script can load without a separate PyPI dependency.
+import types as _pytypes
+if 'vsutil' not in sys.modules:
+    import vstools as _vst
+    _u = _pytypes.ModuleType('vsutil')
+    for _n in ('depth', 'fallback', 'get_y', 'join', 'plane', 'scale_value', 'get_depth', 'get_w', 'split', 'iterate'):
+        setattr(_u, _n, getattr(_vst, _n))
+    _u.Dither = _vst.DitherType
+    _t = _pytypes.ModuleType('vsutil.types')
+    _t.Dither = _vst.DitherType
+    class _Range(int):
+        LIMITED, FULL = 0, 1
+    _t.Range = _Range
+    _t.resolve_enum = lambda enum, value, name, fn=None: None if value is None else enum(value)
+    _u.types = _t
+    sys.modules['vsutil'] = _u
+
 from TFMBob import TFMBobQ
 
 clip = TFMBobQ(clip, pp=6, cthresh=9, MI=80, chroma=False, openCL=False)
@@ -2862,17 +3569,18 @@ Limits the difference between a filtered clip and its original to prevent over-f
 ```python
 # Full Docs: https://jaded-encoding-thaumaturgy.github.io/vs-jetpack/api/vsrgtools/limit/
 
-from vsrgtools import limit_filter
+from vstools import vs, core
 
-# Limit the difference between filtered and original clip
+# vsrgtools no longer wraps this; call the native vszip plugin it used to
+# delegate to. LimitFilter(flt, src, ref, dark_thr, bright_thr, elast, planes)
 original = clip
 # filtered = your_filter(clip)
 # Limit how much the filter can change from original
-thr = 1.0  # Threshold for limiting
+thr = 1.0  # Threshold for limiting (applied to both dark and bright diffs)
 elast = 2.0  # Elasticity
-# clip = limit_filter(filtered, original, thr=thr, elast=elast)
+# clip = core.vszip.LimitFilter(filtered, original, dark_thr=thr, bright_thr=thr, elast=elast)
 
-clip = limit_filter(clip, clip, thr=thr, elast=elast)
+clip = core.vszip.LimitFilter(clip, clip, dark_thr=thr, bright_thr=thr, elast=elast)
 ```
 
 </details>
@@ -2931,11 +3639,13 @@ Converts a mask to pure black and white based on threshold
 ```python
 # Full Docs: https://jaded-encoding-thaumaturgy.github.io/vs-jetpack/api/vsmasktools/utils/
 
-from vsmasktools import binarize
+from vsmasktools import Morpho
 
-# Binarize a mask to pure black and white
+# Binarize a mask to pure black and white.
+# binarize() moved onto the Morpho class; binarize_mask() is the variant meant
+# for mask clips (every plane shares one value range).
 thr = 32768  # Threshold (middle value for 16-bit)
-clip = binarize(clip, thr=thr)
+clip = Morpho.binarize_mask(clip, midthr=thr)
 ```
 
 </details>
@@ -2985,9 +3695,10 @@ Creates a mask highlighting detailed/textured areas in the clip
 from vsmasktools import detail_mask
 
 # Create a mask highlighting detailed areas
+# rxsigma was folded into a single sigma control upstream; there is no
+# separate "rx" pass anymore.
 sigma = 1.0
-rxsigma = 1.0
-clip = detail_mask(clip, sigma=sigma, rxsigma=rxsigma)
+clip = detail_mask(clip, sigma=sigma)
 ```
 
 </details>
@@ -3002,13 +3713,18 @@ Creates a mask showing the difference between two clips
 ```python
 # Full Docs: https://jaded-encoding-thaumaturgy.github.io/vs-jetpack/api/vsmasktools/diff/
 
-from vsmasktools import diff_mask
+from vsmasktools import Morpho
+from vsexprtools import norm_expr
 
-# Create a mask from the difference between two clips
+# vsmasktools dropped its generic two-clip diff_mask() in favor of specialized
+# helpers (credits/rescale detection). Rebuild the plain "absolute difference,
+# optionally binarized" mask by hand.
 clip_a = clip
 clip_b = clip  # Replace with your second clip
-thr = 0  # Threshold for differences
-clip = diff_mask(clip_a, clip_b, thr=thr)
+thr = 0  # Threshold for differences; 0 leaves the raw abs-diff unbinarized
+clip = norm_expr([clip_a, clip_b], "x y - abs")
+if thr > 0:
+    clip = Morpho.binarize_mask(clip, midthr=thr)
 ```
 
 </details>
@@ -3098,10 +3814,12 @@ Creates a mask based on luma/brightness values in the clip
 
 from vsmasktools import luma_mask
 
-# Create a mask based on luma values
-lthr = 0  # Low threshold
-hthr = 65535  # High threshold
-clip = luma_mask(clip, lthr=lthr, hthr=hthr)
+# Create a mask based on luma values.
+# Thresholds are now normalized 0.0-1.0 (32-bit float scale) instead of raw
+# pixel values, so they no longer depend on the working bit depth.
+thr_lo = 0.0  # Low threshold (black)
+thr_hi = 1.0  # High threshold (white)
+clip = luma_mask(clip, thr_lo=thr_lo, thr_hi=thr_hi)
 ```
 
 </details>
@@ -3116,11 +3834,12 @@ Expands (dilates) a mask by growing bright regions
 ```python
 # Full Docs: https://jaded-encoding-thaumaturgy.github.io/vs-jetpack/api/vsmasktools/morpho/
 
-from vsmasktools import expand
+from vsmasktools import Morpho
 
-# Expand (dilate) a mask
+# Expand (dilate) a mask. expand() moved onto Morpho and now takes explicit
+# horizontal/vertical iteration counts instead of a single "iterations".
 iterations = 2
-clip = expand(clip, iterations=iterations)
+clip = Morpho.expand(clip, sw=iterations, sh=iterations)
 ```
 
 </details>
@@ -3135,11 +3854,14 @@ Inflates a mask by expanding then inpanding to smooth edges
 ```python
 # Full Docs: https://jaded-encoding-thaumaturgy.github.io/vs-jetpack/api/vsmasktools/morpho/
 
-from vsmasktools import inflate
+from vsmasktools import Morpho
 
-# Inflate a mask (expand followed by inpand)
+# "Inflate" here means the classic expand-then-inpand (morphological closing),
+# not the Morpho.inflate() averaging filter of the same name (that's a
+# different, unrelated operation std.Inflate always was). Morpho.closing is
+# the direct replacement: dilation followed by erosion.
 iterations = 2
-clip = inflate(clip, iterations=iterations)
+clip = Morpho.closing(clip, iterations=iterations)
 ```
 
 </details>
@@ -3154,11 +3876,12 @@ Inpands (erodes) a mask by shrinking bright regions
 ```python
 # Full Docs: https://jaded-encoding-thaumaturgy.github.io/vs-jetpack/api/vsmasktools/morpho/
 
-from vsmasktools import inpand
+from vsmasktools import Morpho
 
-# Inpand (erode) a mask
+# Inpand (erode) a mask. inpand() moved onto Morpho and now takes explicit
+# horizontal/vertical iteration counts instead of a single "iterations".
 iterations = 2
-clip = inpand(clip, iterations=iterations)
+clip = Morpho.inpand(clip, sw=iterations, sh=iterations)
 ```
 
 </details>
@@ -3173,11 +3896,14 @@ Deflates a mask by inpanding then expanding to remove small details
 ```python
 # Full Docs: https://jaded-encoding-thaumaturgy.github.io/vs-jetpack/api/vsmasktools/morpho/
 
-from vsmasktools import deflate
+from vsmasktools import Morpho
 
-# Deflate a mask (inpand followed by expand)
+# "Deflate" here means the classic inpand-then-expand (morphological opening),
+# not the Morpho.deflate() averaging filter of the same name (that's a
+# different, unrelated operation std.Deflate always was). Morpho.opening is
+# the direct replacement: erosion followed by dilation.
 iterations = 2
-clip = deflate(clip, iterations=iterations)
+clip = Morpho.opening(clip, iterations=iterations)
 ```
 
 </details>
@@ -3206,12 +3932,23 @@ Normalizes a mask to use the full value range (stretches contrast)
 <summary>Show code</summary>
 
 ```python
-# Full Docs: https://jaded-encoding-thaumaturgy.github.io/vs-jetpack/api/vsmasktools/utils/
+# Full Docs: https://jaded-encoding-thaumaturgy.github.io/vs-jetpack/api/vsexprtools/
 
-from vsmasktools import normalize_mask
+from vsexprtools import norm_expr
 
-# Normalize a mask to full range
-clip = normalize_mask(clip)
+# vsmasktools.normalize_mask used to do this; it now conforms a mask spec to a
+# reference clip's format and range instead, which is a different job and not
+# the one this filter is named after. Stretching to full range is a couple of
+# lines, so it is done here rather than renaming the filter to match whatever
+# upstream moved on to.
+#
+# PlaneStats gives the floor and ceiling per frame, so the stretch follows the
+# picture rather than assuming a range. The `1 max` guards a flat frame, where
+# max - min is zero and the division would otherwise be by nothing.
+clip = norm_expr(
+    core.std.PlaneStats(clip),
+    "x x.PlaneStatsMin - x.PlaneStatsMax x.PlaneStatsMin - 1 max / range_max *",
+)
 ```
 
 </details>
@@ -3264,10 +4001,11 @@ Creates a ridge mask for detecting lines and edges from vsmasktools
 ```python
 # Full Docs: https://jaded-encoding-thaumaturgy.github.io/vs-jetpack/api/vsmasktools/edge/
 
-from vsmasktools import RidgeDetect
+from vsmasktools import Sobel
 
-# Create ridge mask for line detection
-mask = RidgeDetect().ridgemask(clip, lthr=0.0, hthr=65535, multi=1.0)
+# RidgeDetect is now an abstract base class; Sobel is a concrete ridge-capable
+# detector (same choice as the "Sobel Edge Mask" template).
+mask = Sobel().ridgemask(clip, lthr=0.0, hthr=65535, multi=1.0)
 clip = mask
 ```
 
@@ -3372,7 +4110,7 @@ clip = bbmod(clip, cTop=0, cBottom=0, cLeft=0, cRight=0, thresh=128, blur=999)
 
 ### Crop 
 
-Crops a clip by the specified pixel amount.
+Crops a clip by the specified pixel amount, or removes padding added by Pad or Modulus when left at zero.
 
 <details>
 <summary>Show code</summary>
@@ -3380,30 +4118,24 @@ Crops a clip by the specified pixel amount.
 ```python
 # Full Docs: https://www.vapoursynth.com/doc/functions/video/crop_cropabs.html#std.Crop
 
-# Set crop amounts here:
-left   = 0
-right  = 0
-top    = 0
-bottom = 0
+# These public variables are supplied by Vapourkit. They can still be edited
+# manually in the code editor, while the visual editor updates their values.
+left   = {{crop_left}}
+right  = {{crop_right}}
+top    = {{crop_top}}
+bottom = {{crop_bottom}}
 
 
-clip = core.std.Crop(clip, left=left, right=right, top=top, bottom=bottom)
-```
-
-</details>
-
-### Crop (Auto) 
-
-Automatically crops padding added by the Pad or Modulus filters.
-
-<details>
-<summary>Show code</summary>
-
-```python
-# Full Docs: https://github.com/pifroggi/vs_tiletools?tab=readme-ov-file#crop
-
-import vs_tiletools
-clip = vs_tiletools.crop(clip)
+if any((left, right, top, bottom)):
+    clip = core.std.Crop(clip, left=left, right=right, top=top, bottom=bottom)
+else:
+    # Nothing set by hand, so take off whatever Pad or Modulus put on above,
+    # rescaled if the clip was resized in between. The props only exist when
+    # something actually padded, and vs_tiletools.crop raises without them, so
+    # a chain that was never padded passes straight through.
+    import vs_tiletools
+    if "tiletools_padprops" in clip.get_frame(0).props:
+        clip = vs_tiletools.crop(clip)
 ```
 
 </details>
@@ -3501,12 +4233,56 @@ Enlarges images by powers of 2 using NNEDI3 with optional shift correction
 
 ```python
 # Enlarge images by powers of 2 using NNEDI3
-# From hybrid_filters/nnedi3_rpow2.py
-import sys
-sys.path.insert(0, r'hybrid_filters')
-from nnedi3_rpow2 import nnedi3_rpow2
+# Reimplemented from hybrid_filters/nnedi3_rpow2.py: it calls the deprecated
+# Core.get_plugins() (removed from modern VapourSynth) just to check whether
+# the classic CPU "nnedi3" plugin is present - which it no longer is, having
+# been superseded by "znedi3" (a modern rewrite with the same nnedi3()
+# function signature, used here instead).
 
-clip = nnedi3_rpow2(clip, rfactor=2, correct_shift=True, kernel="spline36")
+def _nnedi3_rpow2(clip, rfactor=2, width=None, height=None, correct_shift=True, kernel="spline36",
+                   nsize=0, nns=3, qual=None, etype=None, pscrn=None):
+    if not hasattr(core, 'znedi3'):
+        raise RuntimeError("nnedi3_rpow2: znedi3 plugin is required")
+    if (correct_shift or clip.format.subsampling_h) and not hasattr(core, 'fmtc'):
+        raise RuntimeError("nnedi3_rpow2: fmtconv plugin is required")
+
+    width = width or clip.width * rfactor
+    height = height or clip.height * rfactor
+    hshift = 0.0
+    vshift = -0.5
+    pkdnnedi = dict(dh=True, nsize=nsize, nns=nns, qual=qual, etype=etype, pscrn=pscrn)
+    pkdchroma = dict(kernel=kernel, sy=-0.5, planes=[2, 3, 3])
+
+    tmp, times = 1, 0
+    while tmp < rfactor:
+        tmp *= 2
+        times += 1
+    if tmp != rfactor:
+        raise ValueError("nnedi3_rpow2: rfactor must be a power of 2")
+
+    last = clip
+    for i in range(times):
+        field = 1 if i == 0 else 0
+        last = core.znedi3.nnedi3(last, field=field, **pkdnnedi)
+        last = core.std.Transpose(last)
+        if last.format.subsampling_w:
+            field = 1
+            hshift = hshift * 2 - 0.5
+        else:
+            hshift = -0.5
+        last = core.znedi3.nnedi3(last, field=field, **pkdnnedi)
+        last = core.std.Transpose(last)
+
+    if clip.format.subsampling_h:
+        last = core.fmtc.resample(last, w=last.width, h=last.height, **pkdchroma)
+    if correct_shift is True:
+        last = core.fmtc.resample(last, w=width, h=height, kernel=kernel, sx=hshift, sy=vshift)
+    if last.format.id != clip.format.id:
+        last = core.fmtc.bitdepth(last, csp=clip.format.id)
+    return last
+
+
+clip = _nnedi3_rpow2(clip, rfactor=2, correct_shift=True, kernel="spline36")
 ```
 
 </details>
@@ -3577,6 +4353,137 @@ clip = basic_resize.pixel(clip, width=720, height=480, kernel="bilinear")
 
 ## Restoration
 
+### DLSS Neural Uplift 
+
+DLSS neural image enhancement with adjustable processing resolution.
+
+<details>
+<summary>Show code</summary>
+
+```python
+# DLSS-NR ("Neural Uplift", the DLSS 5 generation) run as a 1:1 enhancement pass.
+# Requires: an NVIDIA RTX GPU, driver 570+, vsdlssnr.dll and nvngx_dlssnr.dll
+# in the VapourSynth plugins folder. NVIDIA does not ship nvngx_dlssnr.dll with the driver.
+# The official DLL is included with NBA 2K27 and requires RTX 50 series.
+# RTX 20, 30, 40 and 50 series work with a patched DLL found elsewhere online.
+# Vapourkit does not provide patched DLLs.
+#
+# This is NOT an upscaler - the snippet pins its scaling ratio to 1.0 - so put it at the END
+# of the chain, after whatever changed the resolution.
+
+style           = {{style}}  # 0-2. Style block baked into the weights; 0 is neutral.
+working_scale   = {{working_scale}}  # 0.25-1.0. Try 0.75, then 0.5 for less model work.
+                        # Only the enhancement runs small; source detail and output size stay intact.
+style_strength  = {{style_strength}}  # 0-1. How far the selected style is blended in.
+intensity       = {{intensity}}       # 0-1. Wet/dry blend against the original.
+local_structure = {{local_structure}} # Detail enhancement strength; needs auto_mask.
+skin_structure  = {{skin_structure}}  # -1 means "use local_structure".
+auto_mask       = {{auto_mask}}  # Let the model derive its own protection mask rather than enhancing
+                        # every pixel uniformly. Turning this off also disables both
+                        # structure strengths, which are only applied through that mask.
+auto_motion     = {{auto_motion}}  # Generate current->previous motion on the GPU when the D3D12 Video
+                        # estimator is available. A renderer-supplied motion clip still wins.
+
+# Colour space here is a correctness requirement, not a tuning choice. The model is LDR-clamped
+# and trained on tonemapped, sRGB-ENCODED frames; hand it linear light and it reads the values
+# as though they were already gamma-encoded, which shows up as lifted blacks and washed-out
+# greys. HDR (PQ/HLG) sources must be tonemapped to SDR before this point.
+src_format = clip.format
+is_rgb = src_format.color_family == vs.RGB
+
+# Resolve colourimetry once from the source. The main script supplies its project defaults only
+# when a source is untagged. An RGB source defaults to sRGB/full range, not BT.709/limited.
+#
+# Resize gives frame properties priority over *_in arguments, so resolving and stamping these
+# properties before the first conversion makes both legs of this round trip agree. It also keeps
+# a correct source tag from being silently re-encoded as BT.709 on output.
+source_props = clip.get_frame(0).props
+fallback_matrix = vs.MATRIX_BT709 if default_matrix == "709" else vs.MATRIX_ST170_M
+fallback_transfer = vs.TRANSFER_BT709 if default_transfer == "709" else vs.TRANSFER_BT601
+
+def known_colour_prop(name, fallback):
+    value = source_props.get(name, fallback)
+    return fallback if value == 2 else value  # ITU-T H.273: 2 = unspecified.
+
+src_matrix = known_colour_prop("_Matrix", fallback_matrix)
+src_transfer = known_colour_prop(
+    "_Transfer", vs.TRANSFER_IEC_61966_2_1 if is_rgb else fallback_transfer
+)
+src_range = source_props.get(
+    "_Range", vs.RANGE_FULL if is_rgb else vs.RANGE_LIMITED
+)
+if src_range not in (vs.RANGE_LIMITED, vs.RANGE_FULL):
+    src_range = vs.RANGE_FULL if is_rgb else vs.RANGE_LIMITED
+
+if is_rgb:
+    clip = core.std.SetFrameProps(clip, _Transfer=src_transfer, _Range=src_range)
+else:
+    clip = core.std.SetFrameProps(
+        clip, _Matrix=src_matrix, _Transfer=src_transfer, _Range=src_range
+    )
+
+to_srgb = dict(
+    format=vs.RGBS, transfer=vs.TRANSFER_IEC_61966_2_1, range=vs.RANGE_FULL
+)
+
+rgb = core.resize.Bicubic(clip, **to_srgb)
+
+if not 0.25 <= working_scale <= 1.0:
+    raise ValueError("DLSS Neural Uplift: working_scale must be between 0.25 and 1.0")
+
+nr_input = rgb
+if working_scale < 1.0:
+    # Round down to even dimensions for the automatic motion estimator, without enlarging tiny clips.
+    nr_width = min(rgb.width, max(2, int(rgb.width * working_scale) // 2 * 2))
+    nr_height = min(rgb.height, max(2, int(rgb.height * working_scale) // 2 * 2))
+    nr_input = core.resize.Bilinear(rgb, width=nr_width, height=nr_height)
+
+nr_output = core.dlssnr.Enhance(
+    nr_input,
+    style=style,
+    intensity=intensity,
+    style_strength=style_strength,
+    local_structure=local_structure,
+    skin_structure=skin_structure,
+    auto_mask=auto_mask,
+    auto_motion=auto_motion,
+)
+
+if nr_input.width != rgb.width or nr_input.height != rgb.height:
+    # Matched residual: original + upsample(NR(small) - small).
+    # Bilinear is linear, so subtracting first saves a full-resolution resize and subtraction.
+    nr_delta = core.std.Expr([nr_output, nr_input], "x y -")
+    nr_delta = core.resize.Bilinear(nr_delta, width=rgb.width, height=rgb.height)
+    # One limit shared by R/G/B keeps the edit within SDR range without bending its direction.
+    # Plane rotations share storage and let one expression see all three colour channels.
+    # Fuse limiting and composition instead of writing several full-size intermediate frames.
+    nr_inputs = [core.std.ShufflePlanes(c, order, vs.RGB)
+                 for c in (rgb, nr_delta) for order in ([0, 1, 2], [1, 2, 0], [2, 0, 1])]
+    def nr_channel_limit(base, delta):
+        return (f"{delta} 0 > 1 {base} - {delta} 0.00000001 max / "
+                f"{delta} 0 < {base} 0 {delta} - 0.00000001 max / 1 ? ? 0 max 1 min")
+    nr_bound = (nr_channel_limit("x", "a") + " " + nr_channel_limit("y", "b") + " min "
+                + nr_channel_limit("z", "c") + " min")
+    nr_expr = core.akarin.Expr if hasattr(core, "akarin") else core.std.Expr
+    rgb = nr_expr(nr_inputs, nr_bound + " a * x + 0 max 1 min")
+else:
+    rgb = nr_output
+
+from_srgb = dict(
+    format=src_format.id,
+    transfer_in=vs.TRANSFER_IEC_61966_2_1,
+    transfer=src_transfer,
+    range_in=vs.RANGE_FULL,
+    range=src_range,
+)
+if not is_rgb:
+    from_srgb["matrix"] = src_matrix
+
+clip = core.resize.Bicubic(rgb, **from_srgb)
+```
+
+</details>
+
 ### Dot Crawl Reducer 
 
 Spatial and temporal dot crawl reducer most effective in static or low motion scenes.
@@ -3637,46 +4544,6 @@ clip = vsdehalo.fine_dehalo(
     exclude=True,   edgeproc=0.0,     contra=0.0,
     pre_ss=1,       planes=0,         attach_masks=False,
 )
-```
-
-</details>
-
-### Fine Dehalo2 
-
-Removes 2nd order halos (both bright and dark) from the clip.
-
-<details>
-<summary>Show code</summary>
-
-```python
-# Full Docs: https://jaded-encoding-thaumaturgy.github.io/vs-dehalo/
-# Halo removal function for 2nd order halos
-# mode: 0=Horizontal, 1=Vertical, 2=Both (HV)
-# dark: True=filter dark halos, False=filter bright halos, None=disable merging with source
-
-import vsdehalo
-clip = vsdehalo.fine_dehalo2(clip, mode=2, radius=2, mask_radius=2, brightstr=1.0, darkstr=1.0, dark=True)
-```
-
-</details>
-
-### LGhost Deghost 
-
-Removes ghosting artifacts (halos offset to the side). Adjust shift values to match ghost positions.
-
-<details>
-<summary>Show code</summary>
-
-```python
-# Full Docs: https://github.com/HomeOfVapourSynthEvolution/VapourSynth-LGhost
-# Removes ghosting/halos offset to the right
-# mode: 1=edge, 2=luminance, 3=rising edge, 4=falling edge
-# shift: negative values shift left to counteract rightward ghosts
-# intensity: positive values remove bright ghosts, negative for dark ghosts
-# planes: [0] processes only luma to avoid color issues
-# Start with lower intensity values and increase if needed
-
-clip = core.lghost.LGhost(clip, mode=[1, 1], shift=[-3, -6], intensity=[10, 6], planes=[0])
 ```
 
 </details>
@@ -3743,7 +4610,6 @@ Removes distortions, turbulance, heat haze, or similar. TensorRT is faster, but 
 # Full Docs: https://github.com/pifroggi/vs_undistort?tab=readme-ov-file#usage
 
 temp_window    = 10  # Larger means better temporal averaging, but higher VRAM usage.
-window_overlap = 0   # Overlap between temporal windows. Larger is slower. Increase if jumps/hitches between windows are noticeable.
 interpolation  = "bicubic"  # "bicubic" is sharper, "bilinear" is softer.
 backend        = "auto"  # "cpu", "cuda", "tensorrt", or "auto" to use Vapourkit's global setting.
 tiles          = 1   # More tiles reduces VRAM usage, but worsens spatial averaging.
@@ -3754,7 +4620,9 @@ from vs_undistort import vs_undistort
 backend = backend.lower()
 backend = ("tensorrt" if VK_BACKEND == "tensorrt" else "cpu") if backend == "auto" else backend
 clip = core.resize.Bilinear(clip, format=vs.RGBH, matrix_in_s="709")
-clip = vs_undistort(clip, temp_window=temp_window, window_overlap=window_overlap, tiles=tiles, overlap=overlap, interpolation=interpolation, backend=backend)
+# window_overlap no longer exists on vs_undistort (temporal windows are no
+# longer overlapped); tiles/overlap remain for spatial tiling.
+clip = vs_undistort(clip, temp_window=temp_window, tiles=tiles, overlap=overlap, interpolation=interpolation, backend=backend)
 clip = core.resize.Point(clip, format=vs.YUV444P16, matrix_s="709")
 ```
 
@@ -3854,6 +4722,137 @@ original = clip  # Store original or downscaled version
 
 # For demonstration
 clip = contrasharpening(clip, clip)
+```
+
+</details>
+
+### DLSS Neural Uplift 
+
+DLSS neural image enhancement with adjustable processing resolution.
+
+<details>
+<summary>Show code</summary>
+
+```python
+# DLSS-NR ("Neural Uplift", the DLSS 5 generation) run as a 1:1 enhancement pass.
+# Requires: an NVIDIA RTX GPU, driver 570+, vsdlssnr.dll and nvngx_dlssnr.dll
+# in the VapourSynth plugins folder. NVIDIA does not ship nvngx_dlssnr.dll with the driver.
+# The official DLL is included with NBA 2K27 and requires RTX 50 series.
+# RTX 20, 30, 40 and 50 series work with a patched DLL found elsewhere online.
+# Vapourkit does not provide patched DLLs.
+#
+# This is NOT an upscaler - the snippet pins its scaling ratio to 1.0 - so put it at the END
+# of the chain, after whatever changed the resolution.
+
+style           = {{style}}  # 0-2. Style block baked into the weights; 0 is neutral.
+working_scale   = {{working_scale}}  # 0.25-1.0. Try 0.75, then 0.5 for less model work.
+                        # Only the enhancement runs small; source detail and output size stay intact.
+style_strength  = {{style_strength}}  # 0-1. How far the selected style is blended in.
+intensity       = {{intensity}}       # 0-1. Wet/dry blend against the original.
+local_structure = {{local_structure}} # Detail enhancement strength; needs auto_mask.
+skin_structure  = {{skin_structure}}  # -1 means "use local_structure".
+auto_mask       = {{auto_mask}}  # Let the model derive its own protection mask rather than enhancing
+                        # every pixel uniformly. Turning this off also disables both
+                        # structure strengths, which are only applied through that mask.
+auto_motion     = {{auto_motion}}  # Generate current->previous motion on the GPU when the D3D12 Video
+                        # estimator is available. A renderer-supplied motion clip still wins.
+
+# Colour space here is a correctness requirement, not a tuning choice. The model is LDR-clamped
+# and trained on tonemapped, sRGB-ENCODED frames; hand it linear light and it reads the values
+# as though they were already gamma-encoded, which shows up as lifted blacks and washed-out
+# greys. HDR (PQ/HLG) sources must be tonemapped to SDR before this point.
+src_format = clip.format
+is_rgb = src_format.color_family == vs.RGB
+
+# Resolve colourimetry once from the source. The main script supplies its project defaults only
+# when a source is untagged. An RGB source defaults to sRGB/full range, not BT.709/limited.
+#
+# Resize gives frame properties priority over *_in arguments, so resolving and stamping these
+# properties before the first conversion makes both legs of this round trip agree. It also keeps
+# a correct source tag from being silently re-encoded as BT.709 on output.
+source_props = clip.get_frame(0).props
+fallback_matrix = vs.MATRIX_BT709 if default_matrix == "709" else vs.MATRIX_ST170_M
+fallback_transfer = vs.TRANSFER_BT709 if default_transfer == "709" else vs.TRANSFER_BT601
+
+def known_colour_prop(name, fallback):
+    value = source_props.get(name, fallback)
+    return fallback if value == 2 else value  # ITU-T H.273: 2 = unspecified.
+
+src_matrix = known_colour_prop("_Matrix", fallback_matrix)
+src_transfer = known_colour_prop(
+    "_Transfer", vs.TRANSFER_IEC_61966_2_1 if is_rgb else fallback_transfer
+)
+src_range = source_props.get(
+    "_Range", vs.RANGE_FULL if is_rgb else vs.RANGE_LIMITED
+)
+if src_range not in (vs.RANGE_LIMITED, vs.RANGE_FULL):
+    src_range = vs.RANGE_FULL if is_rgb else vs.RANGE_LIMITED
+
+if is_rgb:
+    clip = core.std.SetFrameProps(clip, _Transfer=src_transfer, _Range=src_range)
+else:
+    clip = core.std.SetFrameProps(
+        clip, _Matrix=src_matrix, _Transfer=src_transfer, _Range=src_range
+    )
+
+to_srgb = dict(
+    format=vs.RGBS, transfer=vs.TRANSFER_IEC_61966_2_1, range=vs.RANGE_FULL
+)
+
+rgb = core.resize.Bicubic(clip, **to_srgb)
+
+if not 0.25 <= working_scale <= 1.0:
+    raise ValueError("DLSS Neural Uplift: working_scale must be between 0.25 and 1.0")
+
+nr_input = rgb
+if working_scale < 1.0:
+    # Round down to even dimensions for the automatic motion estimator, without enlarging tiny clips.
+    nr_width = min(rgb.width, max(2, int(rgb.width * working_scale) // 2 * 2))
+    nr_height = min(rgb.height, max(2, int(rgb.height * working_scale) // 2 * 2))
+    nr_input = core.resize.Bilinear(rgb, width=nr_width, height=nr_height)
+
+nr_output = core.dlssnr.Enhance(
+    nr_input,
+    style=style,
+    intensity=intensity,
+    style_strength=style_strength,
+    local_structure=local_structure,
+    skin_structure=skin_structure,
+    auto_mask=auto_mask,
+    auto_motion=auto_motion,
+)
+
+if nr_input.width != rgb.width or nr_input.height != rgb.height:
+    # Matched residual: original + upsample(NR(small) - small).
+    # Bilinear is linear, so subtracting first saves a full-resolution resize and subtraction.
+    nr_delta = core.std.Expr([nr_output, nr_input], "x y -")
+    nr_delta = core.resize.Bilinear(nr_delta, width=rgb.width, height=rgb.height)
+    # One limit shared by R/G/B keeps the edit within SDR range without bending its direction.
+    # Plane rotations share storage and let one expression see all three colour channels.
+    # Fuse limiting and composition instead of writing several full-size intermediate frames.
+    nr_inputs = [core.std.ShufflePlanes(c, order, vs.RGB)
+                 for c in (rgb, nr_delta) for order in ([0, 1, 2], [1, 2, 0], [2, 0, 1])]
+    def nr_channel_limit(base, delta):
+        return (f"{delta} 0 > 1 {base} - {delta} 0.00000001 max / "
+                f"{delta} 0 < {base} 0 {delta} - 0.00000001 max / 1 ? ? 0 max 1 min")
+    nr_bound = (nr_channel_limit("x", "a") + " " + nr_channel_limit("y", "b") + " min "
+                + nr_channel_limit("z", "c") + " min")
+    nr_expr = core.akarin.Expr if hasattr(core, "akarin") else core.std.Expr
+    rgb = nr_expr(nr_inputs, nr_bound + " a * x + 0 max 1 min")
+else:
+    rgb = nr_output
+
+from_srgb = dict(
+    format=src_format.id,
+    transfer_in=vs.TRANSFER_IEC_61966_2_1,
+    transfer=src_transfer,
+    range_in=vs.RANGE_FULL,
+    range=src_range,
+)
+if not is_rgb:
+    from_srgb["matrix"] = src_matrix
+
+clip = core.resize.Bicubic(rgb, **from_srgb)
 ```
 
 </details>
@@ -3965,13 +4964,15 @@ Aggressive edge-based sharpening using warp algorithm
 ```python
 # Warp-based sharpening (strong effect)
 # Full Docs: https://github.com/HomeOfVapourSynthEvolution/VapourSynth-AWarpSharp2
+# The old warp plugin is gone; vsrgtools.awarpsharp() wraps its awarp (Vulkan)
+# replacement. depth_h/depth_v replace the single "depth" magnitude.
 
-from vstools import vs, core
+from vsrgtools import awarpsharp
 
 blur = 2  # Pre-blur amount (0-3)
-depth = 16  # Warp depth (strength)
+warp_depth = 16  # Warp depth (strength)
 
-clip = core.warp.AWarpSharp2(clip, blur=blur, depth=depth)
+clip = awarpsharp(clip, blur=blur, depth_h=warp_depth, depth_v=warp_depth)
 ```
 
 </details>
@@ -3981,19 +4982,35 @@ clip = core.warp.AWarpSharp2(clip, blur=blur, depth=depth)
 
 ### Stabilize 
 
-CURRENTLY BROKEN - Stabilizes shaky video using motion estimation and compensation
+Stabilizes shaky video using motion estimation and compensation
 
 <details>
 <summary>Show code</summary>
 
 ```python
 # Video stabilization using motion compensation
-# From hybrid_filters/stabilize.py
+# From hybrid_filters/stabilize.py, reimplemented against MVTools' DePan
+# family: the standalone "depan" plugin stabilize.py's Stab() hardcodes
+# (core.depan.DePanEstimate/DePan) is gone. MVTools ships the same
+# functionality as core.mv.DepanEstimate/DepanCompensate (mvtools is already
+# a cross-platform PyPI dependency), just without DepanEstimate's old "range"
+# parameter (dropped upstream, no direct substitute).
 import sys
 sys.path.insert(0, r'hybrid_filters')
-from stabilize import Stab
+from stabilize import AverageFrames
 
-clip = Stab(clip, range=1, dxmax=4, dymax=4, mirror=0)
+dxmax = 4
+dymax = 4
+mirror = 0
+
+temp = AverageFrames(clip, weights=[1] * 15, scenechange=25 / 255)
+if hasattr(core, 'zsmooth'):
+    inter = core.std.Interleave([core.zsmooth.Repair(temp, AverageFrames(clip, weights=[1] * 3, scenechange=25 / 255), 1), clip])
+else:
+    inter = core.std.Interleave([core.rgvs.Repair(temp, AverageFrames(clip, weights=[1] * 3, scenechange=25 / 255), 1), clip])
+mdata = core.mv.DepanEstimate(inter, trust=0, dxmax=dxmax, dymax=dymax)
+last = core.mv.DepanCompensate(inter, data=mdata, offset=-1, mirror=mirror)
+clip = last[::2]
 ```
 
 </details>
@@ -4009,7 +5026,6 @@ Removes distortions, turbulance, heat haze, or similar. TensorRT is faster, but 
 # Full Docs: https://github.com/pifroggi/vs_undistort?tab=readme-ov-file#usage
 
 temp_window    = 10  # Larger means better temporal averaging, but higher VRAM usage.
-window_overlap = 0   # Overlap between temporal windows. Larger is slower. Increase if jumps/hitches between windows are noticeable.
 interpolation  = "bicubic"  # "bicubic" is sharper, "bilinear" is softer.
 backend        = "auto"  # "cpu", "cuda", "tensorrt", or "auto" to use Vapourkit's global setting.
 tiles          = 1   # More tiles reduces VRAM usage, but worsens spatial averaging.
@@ -4020,7 +5036,9 @@ from vs_undistort import vs_undistort
 backend = backend.lower()
 backend = ("tensorrt" if VK_BACKEND == "tensorrt" else "cpu") if backend == "auto" else backend
 clip = core.resize.Bilinear(clip, format=vs.RGBH, matrix_in_s="709")
-clip = vs_undistort(clip, temp_window=temp_window, window_overlap=window_overlap, tiles=tiles, overlap=overlap, interpolation=interpolation, backend=backend)
+# window_overlap no longer exists on vs_undistort (temporal windows are no
+# longer overlapped); tiles/overlap remain for spatial tiling.
+clip = vs_undistort(clip, temp_window=temp_window, tiles=tiles, overlap=overlap, interpolation=interpolation, backend=backend)
 clip = core.resize.Point(clip, format=vs.YUV444P16, matrix_s="709")
 ```
 
@@ -4128,10 +5146,11 @@ Removes temporal outliers (pixels that differ significantly from adjacent frames
 
 ```python
 # Temporal cleaning to remove outlier pixels
+# The rgvs plugin is gone; vsrgtools.clense() wraps the zsmooth replacement.
 
-from vstools import vs, core
+from vsrgtools import clense
 
-clip = core.rgvs.Clense(clip)
+clip = clense(clip)
 ```
 
 </details>
@@ -4165,12 +5184,15 @@ Applies temporal median filtering to remove outlier frames/pixels
 
 ```python
 # Temporal median filter (removes outliers)
+# The standalone tmedian plugin is gone; vsrgtools.median_blur() reaches the
+# same zsmooth.TemporalMedian in its ConvMode.TEMPORAL mode.
 
-from vstools import vs, core
+from vsrgtools import median_blur
+from vstools import ConvMode
 
 radius = 1  # Temporal radius (frames before/after)
 
-clip = core.tmedian.TemporalMedian(clip, radius=radius)
+clip = median_blur(clip, radius=radius, mode=ConvMode.TEMPORAL)
 ```
 
 </details>
@@ -4345,12 +5367,16 @@ Reverses bicubic upscaling to restore original resolution
 
 ```python
 # Reverse bicubic upscaling
-# From hybrid_filters/descale.py
-import sys
-sys.path.insert(0, r'hybrid_filters')
-from descale import Debicubic
+# The bundled descale.py wrapper calls a dispatcher (core.descale.Descale)
+# that no longer exists on the native descale plugin, which now exposes
+# Debicubic/Debilinear/Delanczos/... directly. vskernels wraps those natively
+# and handles YUV chroma planes automatically, so use it instead.
+from vskernels import Bicubic
+from vstools import depth
 
-clip = Debicubic(clip, width=1280, height=720, b=0.0, c=0.5, yuv444=False, gray=False)
+src_depth = clip.format.bits_per_sample
+clip = Bicubic(b=0.0, c=0.5).descale(depth(clip, 32), width=1280, height=720)
+clip = depth(clip, src_depth)
 ```
 
 </details>
@@ -4364,12 +5390,15 @@ Reverses bilinear upscaling to restore original resolution
 
 ```python
 # Reverse bilinear upscaling
-# From hybrid_filters/descale.py
-import sys
-sys.path.insert(0, r'hybrid_filters')
-from descale import Debilinear
+# The bundled descale.py wrapper calls a dispatcher (core.descale.Descale)
+# that no longer exists on the native descale plugin. vskernels wraps the
+# named descale entry points natively and handles YUV chroma automatically.
+from vskernels import Bilinear
+from vstools import depth
 
-clip = Debilinear(clip, width=1280, height=720, yuv444=False, gray=False)
+src_depth = clip.format.bits_per_sample
+clip = Bilinear().descale(depth(clip, 32), width=1280, height=720)
+clip = depth(clip, src_depth)
 ```
 
 </details>
@@ -4383,12 +5412,15 @@ Reverses Lanczos upscaling to restore original resolution
 
 ```python
 # Reverse Lanczos upscaling
-# From hybrid_filters/descale.py
-import sys
-sys.path.insert(0, r'hybrid_filters')
-from descale import Delanczos
+# The bundled descale.py wrapper calls a dispatcher (core.descale.Descale)
+# that no longer exists on the native descale plugin. vskernels wraps the
+# named descale entry points natively and handles YUV chroma automatically.
+from vskernels import Lanczos
+from vstools import depth
 
-clip = Delanczos(clip, width=1280, height=720, taps=3, yuv444=False, gray=False)
+src_depth = clip.format.bits_per_sample
+clip = Lanczos(taps=3).descale(depth(clip, 32), width=1280, height=720)
+clip = depth(clip, src_depth)
 ```
 
 </details>
@@ -4402,12 +5434,15 @@ Reverses Spline36 upscaling to restore original resolution
 
 ```python
 # Reverse Spline36 upscaling
-# From hybrid_filters/descale.py
-import sys
-sys.path.insert(0, r'hybrid_filters')
-from descale import Despline36
+# The bundled descale.py wrapper calls a dispatcher (core.descale.Descale)
+# that no longer exists on the native descale plugin. vskernels wraps the
+# named descale entry points natively and handles YUV chroma automatically.
+from vskernels import Spline36
+from vstools import depth
 
-clip = Despline36(clip, width=1280, height=720, yuv444=False, gray=False)
+src_depth = clip.format.bits_per_sample
+clip = Spline36().descale(depth(clip, 32), width=1280, height=720)
+clip = depth(clip, src_depth)
 ```
 
 </details>
@@ -4477,6 +5512,29 @@ divisor = 1
 bias = 128
 
 clip = core.std.Convolution(clip, matrix=matrix, divisor=divisor, bias=bias)
+```
+
+</details>
+
+### Create LUT 
+
+Marks a place in the chain and remembers the colour there, changing nothing itself. A Load LUT below puts that colour back; the colour work above can be saved as a .cube.
+
+<details>
+<summary>Show code</summary>
+
+```python
+# Create LUT does nothing to the picture, on purpose.
+#
+# It marks a place in the chain and remembers the colour there. A Load LUT
+# step further down, pointed at this one, puts that colour back; the table it
+# needs is made in the app, where the model of what a grade does actually
+# lives, and written beside the workflow. Nothing about that is work for the
+# render to repeat, so at render time this step is a no-op and the frames pass
+# through untouched.
+#
+# It still takes a position in the chain, and the position is the point.
+pass
 ```
 
 </details>
