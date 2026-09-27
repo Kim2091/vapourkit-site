@@ -9,9 +9,9 @@ description: Licenses for bundled and imported AI models.
 
 Each bundled model retains its upstream license. The current bundled families are grouped as follows:
 
-- **CC BY-NC-SA 4.0:** AniRemaster TSPAN, AnimeUpV2 TSPAN, AniRestore TFDAT, AnimeJaNai variants, and AnimeSharpV4.
+- **CC BY-NC-SA 4.0:** AniRemaster TSPAN, AnimeUpV2 TSPAN, AniRestore TFDAT, bndl animefilm v3, AnimeJaNai variants, and AnimeSharpV4.
 - **CC BY-NC 4.0:** AniSD AC/DC SPAN.
-- **CC BY 4.0:** the `2x_bndl_animefilm_v1.5` model.
+- **CC BY 4.0:** bndl animefilm v1.5.
 
 The licensing data lives in [`src/data/modelLicenses.ts`](https://github.com/Kim2091/vapourkit/blob/main/src/data/modelLicenses.ts) in the Vapourkit repo and is the authoritative source.
 

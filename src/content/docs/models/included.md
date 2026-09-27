@@ -12,6 +12,7 @@ Temporally aware models for video. They use neighbouring frames to improve stabi
 - **AniRestore TFDAT** - LQ anime or cartoons, including dot crawl and rainbowing
 - **AniRemaster TSPAN** - classic anime
 - **AnimeUpV2 TSPAN** - low-quality anime
+- **bndl animefilm v3** - anime film, uses 9 neighbouring frames
 
 ## Image-based models
 
@@ -24,7 +25,7 @@ Frame-by-frame models. They work on video but may show shimmer or flicker on fin
 - **AniSD AC SPAN** - classic high-quality SD anime
 - **AniSD DC SPAN** - classic low-quality SD anime
 - **AnimeSharpV4 Fast** - low-quality anime
-- **Animefilm bundle** - low-quality SD anime
+- **bndl animefilm v1.5** - low-quality SD anime
 
 The model picker shows the full model name, scale, precision, and display tag where available.
 

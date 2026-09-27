@@ -7,7 +7,7 @@ description: Complete reference of bundled VapourSynth filters in Vapourkit.
 
 > This page contains the complete Windows catalog. Linux exposes a curated subset whose Python and native dependencies are verified by Linux setup. Filters that require Windows-native binaries, CUDA-only plugins, Hybrid scripts, or other unverified native dependencies are hidden from the Linux filter picker. See [Platform Support](/filters/platform-support) for details.
 
-**158 filters** across 34 categories.
+**159 filters** across 34 categories.
 
 ## Categories
 
@@ -2424,6 +2424,30 @@ from vsrgtools import remove_grain
 
 # Temporal smoothing of grain
 clip = remove_grain(clip, mode=19)
+```
+
+</details>
+
+### Grain Synth 
+
+Adds film grain fitted to real sources. Apply after upscaling, at the final resolution. Outputs 4:4:4 to keep the chroma grain. Uses CUDA with TensorRT or CPU with NCNN/DirectML.
+
+<details>
+<summary>Show code</summary>
+
+```python
+model    = "mega_v1"  # "mega_v1" is stronger, harsher grain. "real_v5" is softer.
+strength = 1.0        # Scales the grain. 1.0 is as fitted.
+seed     = 0          # Same seed gives the same grain on every render.
+backend  = "auto"     # "cpu", "cuda", or "auto" to use Vapourkit's global setting.
+
+
+import vs_grainsynth
+backend = backend.lower()
+device = ("cuda" if VK_BACKEND == "tensorrt" else "cpu") if backend == "auto" else backend
+clip = vs_grainsynth.grain(clip, model=model, strength=strength, seed=seed,
+                           device=device, matrix_s="709",
+                           output_format=vs.YUV444P16)
 ```
 
 </details>
