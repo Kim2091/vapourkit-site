@@ -7,7 +7,7 @@ description: Complete reference of bundled VapourSynth filters in Vapourkit.
 
 > This page contains the complete Windows catalog. Linux exposes a curated subset whose Python and native dependencies are verified by Linux setup. Filters that require Windows-native binaries, CUDA-only plugins, Hybrid scripts, or other unverified native dependencies are hidden from the Linux filter picker. See [Platform Support](/filters/platform-support) for details.
 
-**161 filters** across 34 categories.
+**158 filters** across 34 categories.
 
 ## Categories
 
@@ -85,27 +85,6 @@ aa_strength = 48
 
 # Apply anti-aliasing in both directions using SangNom
 clip = SangNom(aa=aa_strength).antialias(clip)
-```
-
-</details>
-
-### Based AA 
-
-Advanced anti-aliasing using supersampling with edge detection masking
-
-<details>
-<summary>Show code</summary>
-
-```python
-# Full Docs: https://jaded-encoding-thaumaturgy.github.io/vs-jetpack/api/vsaa/funcs/?h=based#vsaa.funcs.based_aa
-
-from vsaa import based_aa
-
-# Based anti-aliasing - supersampling-based AA with edge detection
-rfactor = 2.0  # Resize factor for supersampling (higher = better quality but slower)
-mask_thr = 60  # Edge detection threshold (higher = less AA applied)
-
-clip = based_aa(clip, rfactor=rfactor, mask_thr=mask_thr)
 ```
 
 </details>
@@ -201,11 +180,18 @@ Edge-preserving guided filter for smoothing while maintaining edges
 # Full Docs: https://jaded-encoding-thaumaturgy.github.io/vs-jetpack/api/vsrgtools/blur/#vsrgtools.blur.guided_filter
 
 from vsrgtools import guided_filter
+from vstools import depth
 
 # Apply edge-preserving guided filter
 radius = 4
 thr = 0.01  # Threshold (epsilon)
-clip = guided_filter(clip, radius=radius, thr=thr)
+
+# guided_filter refuses an integer clip outright, and every source the app
+# hands a filter is integer, so convert around it and hand back the depth
+# that arrived — the same shape the descale templates use.
+src_depth = clip.format.bits_per_sample
+clip = guided_filter(depth(clip, 32), radius=radius, thr=thr)
+clip = depth(clip, src_depth)
 ```
 
 </details>
@@ -1676,65 +1662,28 @@ if 'vsutil' not in sys.modules:
 
 from qtgmc import QTGMC
 
+# qtgmc.py binds core.eedi3m.EEDI3 before it has decided whether the preset
+# even uses EEDI3, so a missing eedi3m breaks every preset, 'Slower' included.
+# And it is missing by design: EEDI3m.dll is superseded by the eedi3vk2 wheel
+# (Vulkan) and removed at install. The script's detection only knows the older
+# `eedi3vk` spelling, so answer to that name and translate the one argument the
+# two plugins spell differently.
+import qtgmc as _qtgmc
+if not hasattr(_qtgmc.core, 'eedi3vk') and hasattr(core, 'eedi3vk2'):
+    class _Eedi3vk:
+        @staticmethod
+        def EEDI3(clip, device=None, **kwargs):
+            if device is not None and device >= 0:
+                kwargs['device_index'] = device
+            return core.eedi3vk2.EEDI3(clip, **kwargs)
+
+    class _CoreWithEedi3vk:
+        def __getattr__(self, name):
+            return _Eedi3vk if name == 'eedi3vk' else getattr(core, name)
+
+    _qtgmc.core = _CoreWithEedi3vk()
+
 clip = QTGMC(clip, Preset='Slower', FPSDivisor=1, TFF=None)
-```
-
-</details>
-
-### TFMBobN 
-
-Deinterlaces using TFM with NNEDI3 bobbing for field reconstruction
-
-<details>
-<summary>Show code</summary>
-
-```python
-# TFM + NNEDI3 bobbing deinterlace
-# From hybrid_filters/TFMBob.py
-import sys
-sys.path.insert(0, r'hybrid_filters')
-from TFMBob import TFMBobN
-
-clip = TFMBobN(clip, pp=6, cthresh=9, MI=80, chroma=False, openCL=False)
-```
-
-</details>
-
-### TFMBobQ 
-
-Deinterlaces using TFM with QTGMC bobbing for field reconstruction
-
-<details>
-<summary>Show code</summary>
-
-```python
-# TFM + QTGMC bobbing deinterlace
-# From hybrid_filters/TFMBob.py
-import sys
-sys.path.insert(0, r'hybrid_filters')
-
-# TFMBob.py pulls in qtgmc.py, which still imports the old, deprecated
-# `vsutil` package (superseded by vstools, which does not ship it). Shim it
-# from vstools so the script can load without a separate PyPI dependency.
-import types as _pytypes
-if 'vsutil' not in sys.modules:
-    import vstools as _vst
-    _u = _pytypes.ModuleType('vsutil')
-    for _n in ('depth', 'fallback', 'get_y', 'join', 'plane', 'scale_value', 'get_depth', 'get_w', 'split', 'iterate'):
-        setattr(_u, _n, getattr(_vst, _n))
-    _u.Dither = _vst.DitherType
-    _t = _pytypes.ModuleType('vsutil.types')
-    _t.Dither = _vst.DitherType
-    class _Range(int):
-        LIMITED, FULL = 0, 1
-    _t.Range = _Range
-    _t.resolve_enum = lambda enum, value, name, fn=None: None if value is None else enum(value)
-    _u.types = _t
-    sys.modules['vsutil'] = _u
-
-from TFMBob import TFMBobQ
-
-clip = TFMBobQ(clip, pp=6, cthresh=9, MI=80, chroma=False, openCL=False)
 ```
 
 </details>
@@ -3254,6 +3203,27 @@ if 'vsutil' not in sys.modules:
 
 from qtgmc import QTGMC
 
+# qtgmc.py binds core.eedi3m.EEDI3 before it has decided whether the preset
+# even uses EEDI3, so a missing eedi3m breaks every preset, 'Slower' included.
+# And it is missing by design: EEDI3m.dll is superseded by the eedi3vk2 wheel
+# (Vulkan) and removed at install. The script's detection only knows the older
+# `eedi3vk` spelling, so answer to that name and translate the one argument the
+# two plugins spell differently.
+import qtgmc as _qtgmc
+if not hasattr(_qtgmc.core, 'eedi3vk') and hasattr(core, 'eedi3vk2'):
+    class _Eedi3vk:
+        @staticmethod
+        def EEDI3(clip, device=None, **kwargs):
+            if device is not None and device >= 0:
+                kwargs['device_index'] = device
+            return core.eedi3vk2.EEDI3(clip, **kwargs)
+
+    class _CoreWithEedi3vk:
+        def __getattr__(self, name):
+            return _Eedi3vk if name == 'eedi3vk' else getattr(core, name)
+
+    _qtgmc.core = _CoreWithEedi3vk()
+
 clip = QTGMC(clip, Preset='Slower', FPSDivisor=1, TFF=None)
 ```
 
@@ -3456,64 +3426,6 @@ if 'vsutil' not in sys.modules:
 from degrain import STPresso
 
 clip = STPresso(clip, limit=3, bias=24, RGmode=4, tthr=12, tlimit=3, tbias=49, back=1)
-```
-
-</details>
-
-### TFMBobN 
-
-Deinterlaces using TFM with NNEDI3 bobbing for field reconstruction
-
-<details>
-<summary>Show code</summary>
-
-```python
-# TFM + NNEDI3 bobbing deinterlace
-# From hybrid_filters/TFMBob.py
-import sys
-sys.path.insert(0, r'hybrid_filters')
-from TFMBob import TFMBobN
-
-clip = TFMBobN(clip, pp=6, cthresh=9, MI=80, chroma=False, openCL=False)
-```
-
-</details>
-
-### TFMBobQ 
-
-Deinterlaces using TFM with QTGMC bobbing for field reconstruction
-
-<details>
-<summary>Show code</summary>
-
-```python
-# TFM + QTGMC bobbing deinterlace
-# From hybrid_filters/TFMBob.py
-import sys
-sys.path.insert(0, r'hybrid_filters')
-
-# TFMBob.py pulls in qtgmc.py, which still imports the old, deprecated
-# `vsutil` package (superseded by vstools, which does not ship it). Shim it
-# from vstools so the script can load without a separate PyPI dependency.
-import types as _pytypes
-if 'vsutil' not in sys.modules:
-    import vstools as _vst
-    _u = _pytypes.ModuleType('vsutil')
-    for _n in ('depth', 'fallback', 'get_y', 'join', 'plane', 'scale_value', 'get_depth', 'get_w', 'split', 'iterate'):
-        setattr(_u, _n, getattr(_vst, _n))
-    _u.Dither = _vst.DitherType
-    _t = _pytypes.ModuleType('vsutil.types')
-    _t.Dither = _vst.DitherType
-    class _Range(int):
-        LIMITED, FULL = 0, 1
-    _t.Range = _Range
-    _t.resolve_enum = lambda enum, value, name, fn=None: None if value is None else enum(value)
-    _u.types = _t
-    sys.modules['vsutil'] = _u
-
-from TFMBob import TFMBobQ
-
-clip = TFMBobQ(clip, pp=6, cthresh=9, MI=80, chroma=False, openCL=False)
 ```
 
 </details>
@@ -4610,6 +4522,7 @@ Removes distortions, turbulance, heat haze, or similar. TensorRT is faster, but 
 # Full Docs: https://github.com/pifroggi/vs_undistort?tab=readme-ov-file#usage
 
 temp_window    = 10  # Larger means better temporal averaging, but higher VRAM usage.
+window_overlap = 0   # Overlap between temporal windows. Smooths the seam between them, at a cost in speed.
 interpolation  = "bicubic"  # "bicubic" is sharper, "bilinear" is softer.
 backend        = "auto"  # "cpu", "cuda", "tensorrt", or "auto" to use Vapourkit's global setting.
 tiles          = 1   # More tiles reduces VRAM usage, but worsens spatial averaging.
@@ -4620,9 +4533,7 @@ from vs_undistort import vs_undistort
 backend = backend.lower()
 backend = ("tensorrt" if VK_BACKEND == "tensorrt" else "cpu") if backend == "auto" else backend
 clip = core.resize.Bilinear(clip, format=vs.RGBH, matrix_in_s="709")
-# window_overlap no longer exists on vs_undistort (temporal windows are no
-# longer overlapped); tiles/overlap remain for spatial tiling.
-clip = vs_undistort(clip, temp_window=temp_window, tiles=tiles, overlap=overlap, interpolation=interpolation, backend=backend)
+clip = vs_undistort(clip, temp_window=temp_window, window_overlap=window_overlap, tiles=tiles, overlap=overlap, interpolation=interpolation, backend=backend)
 clip = core.resize.Point(clip, format=vs.YUV444P16, matrix_s="709")
 ```
 
@@ -4665,20 +4576,20 @@ Removes distortions, turbulance, heat haze, or similar. TensorRT is faster, but 
 ```python
 # Full Docs: https://github.com/pifroggi/vs_undistort?tab=readme-ov-file#tensorrt-backend
 
-temp_window   = 10
-tiles         = 1
-overlap       = 8
-interpolation = "bicubic"
-num_streams   = 1
-engine_folder = None  # Optional TensorRT engine-cache folder.
-backend       = "auto"  # "cpu", "cuda", "tensorrt", or "auto" to use Vapourkit's global setting.
+temp_window    = 10
+window_overlap = 0   # Overlap between temporal windows. Smooths the seam between them, at a cost in speed.
+tiles          = 1
+overlap        = 8
+interpolation  = "bicubic"
+engine_folder  = None  # Optional TensorRT engine-cache folder.
+backend        = "auto"  # "cpu", "cuda", "tensorrt", or "auto" to use Vapourkit's global setting.
 
 
 from vs_undistort import vs_undistort
 backend = backend.lower()
 backend = ("tensorrt" if VK_BACKEND == "tensorrt" else "cpu") if backend == "auto" else backend
 clip = core.resize.Bilinear(clip, format=vs.RGBH, matrix_in_s=709)
-clip = vs_undistort(clip, temp_window=temp_window, tiles=tiles, overlap=overlap, interpolation=interpolation, backend=backend, num_streams=num_streams, engine_folder=engine_folder)
+clip = vs_undistort(clip, temp_window=temp_window, tiles=tiles, overlap=overlap, interpolation=interpolation, backend=backend, window_overlap=window_overlap, engine_folder=engine_folder)
 clip = core.resize.Point(clip, format=vs.YUV444P16, matrix_s=709)
 ```
 
@@ -5026,6 +4937,7 @@ Removes distortions, turbulance, heat haze, or similar. TensorRT is faster, but 
 # Full Docs: https://github.com/pifroggi/vs_undistort?tab=readme-ov-file#usage
 
 temp_window    = 10  # Larger means better temporal averaging, but higher VRAM usage.
+window_overlap = 0   # Overlap between temporal windows. Smooths the seam between them, at a cost in speed.
 interpolation  = "bicubic"  # "bicubic" is sharper, "bilinear" is softer.
 backend        = "auto"  # "cpu", "cuda", "tensorrt", or "auto" to use Vapourkit's global setting.
 tiles          = 1   # More tiles reduces VRAM usage, but worsens spatial averaging.
@@ -5036,9 +4948,7 @@ from vs_undistort import vs_undistort
 backend = backend.lower()
 backend = ("tensorrt" if VK_BACKEND == "tensorrt" else "cpu") if backend == "auto" else backend
 clip = core.resize.Bilinear(clip, format=vs.RGBH, matrix_in_s="709")
-# window_overlap no longer exists on vs_undistort (temporal windows are no
-# longer overlapped); tiles/overlap remain for spatial tiling.
-clip = vs_undistort(clip, temp_window=temp_window, tiles=tiles, overlap=overlap, interpolation=interpolation, backend=backend)
+clip = vs_undistort(clip, temp_window=temp_window, window_overlap=window_overlap, tiles=tiles, overlap=overlap, interpolation=interpolation, backend=backend)
 clip = core.resize.Point(clip, format=vs.YUV444P16, matrix_s="709")
 ```
 
@@ -5081,20 +4991,20 @@ Removes distortions, turbulance, heat haze, or similar. TensorRT is faster, but 
 ```python
 # Full Docs: https://github.com/pifroggi/vs_undistort?tab=readme-ov-file#tensorrt-backend
 
-temp_window   = 10
-tiles         = 1
-overlap       = 8
-interpolation = "bicubic"
-num_streams   = 1
-engine_folder = None  # Optional TensorRT engine-cache folder.
-backend       = "auto"  # "cpu", "cuda", "tensorrt", or "auto" to use Vapourkit's global setting.
+temp_window    = 10
+window_overlap = 0   # Overlap between temporal windows. Smooths the seam between them, at a cost in speed.
+tiles          = 1
+overlap        = 8
+interpolation  = "bicubic"
+engine_folder  = None  # Optional TensorRT engine-cache folder.
+backend        = "auto"  # "cpu", "cuda", "tensorrt", or "auto" to use Vapourkit's global setting.
 
 
 from vs_undistort import vs_undistort
 backend = backend.lower()
 backend = ("tensorrt" if VK_BACKEND == "tensorrt" else "cpu") if backend == "auto" else backend
 clip = core.resize.Bilinear(clip, format=vs.RGBH, matrix_in_s=709)
-clip = vs_undistort(clip, temp_window=temp_window, tiles=tiles, overlap=overlap, interpolation=interpolation, backend=backend, num_streams=num_streams, engine_folder=engine_folder)
+clip = vs_undistort(clip, temp_window=temp_window, tiles=tiles, overlap=overlap, interpolation=interpolation, backend=backend, window_overlap=window_overlap, engine_folder=engine_folder)
 clip = core.resize.Point(clip, format=vs.YUV444P16, matrix_s=709)
 ```
 
@@ -5600,7 +5510,7 @@ Loads an image and converts it to a clip.
 # Full Docs: https://github.com/dnjulek/vapoursynth-zip/wiki/ImageRead
 # Length is how long the image clip should be in frames.
 
-image_path = "path\to\image.png"
+image_path = r"path\to\image.png"
 length     = 100
 
 image = core.vszip.ImageRead(path=image_path)
