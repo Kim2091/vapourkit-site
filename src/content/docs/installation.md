@@ -55,7 +55,11 @@ For Linux-specific diagnostics, see [Linux Setup & Troubleshooting](/reference/l
 ## System requirements
 
 - **RAM:** 8 GB or more recommended.
-- **Storage:** 5 GB minimum; 10 GB recommended for the application and dependencies.
+- **Storage:** free space on the drive Vapourkit is installed to, for the application and its dependencies:
+  - **NVIDIA:** 15 GB free to install; about 13 GB once installed.
+  - **AMD, Intel, and other GPUs:** 10 GB free to install; about 7 GB once installed.
+  - **25 GB recommended.** TensorRT engines are built the first time each model runs at a new resolution, and they add up to several GB with regular use.
+  - Setup checks free space before it starts, and stops with a message rather than failing partway through.
 - **GPU:** 6 GB VRAM or more recommended.
 - **Linux host:** Python 3.12 or 3.13 with `venv`/`ensurepip`, `ffmpeg`, `ffprobe`, and a working Vulkan runtime.
 - **Windows TensorRT:** NVIDIA 16-series or newer with a current compatible driver.
